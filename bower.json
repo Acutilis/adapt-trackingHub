@@ -1,0 +1,17 @@
+{
+  "name": "adapt-trackingHub",
+  "version": "0.0.1",
+  "framework": "^2.0.0",
+  "homepage": "http://www.github.com",
+  "issues": "",
+  "displayName" : "TrackingHub",
+  "extension" : "trackingHub",
+  "description": "An extension that implements the basic mechanisms for multichannel tracking, including xAPI.",
+  "main": "/js/adapt-trackingHub.js",
+  "keywords": [
+    "adapt-plugin",
+    "adapt-extension"
+  ],
+  "license": "GPLv3",
+  "targetAttribute": "_trackingHub"
+}
