@@ -74,6 +74,7 @@ An example of such an _external_ messageComposer is [adapt-simpleJSONMessageComp
 ### Transport Handlers
 The trackingHub extension bundles two tranportHandlers that are always available:
 - **consoleLog-transportHandler**: It is the simplest transport handler. It just calls console.log with the message it receives.
+- **localStorage-transportHandler**: Stores state on localstorage and loads it again when you refresh, logs all other messages to the console.
 - **xapi-transportHandler**: Implements communication with an LRS, using xAPI.
 
 A transportHandler has a function called `deliver`, which just takes the message and the channel. With that, it has enough information to deliver the message.

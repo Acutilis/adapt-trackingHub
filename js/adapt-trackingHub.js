@@ -1,12 +1,13 @@
 define([
   'coreJS/adapt',
   './string-messageComposer',
+  './learnify-messageComposer',
   './consoleLog-transportHandler',
+  './localStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, consoleLogTransportHandler,
-    xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, learnifyMessageComposer, consoleLogTransportHandler, localStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -40,9 +41,11 @@ define([
       xapiManager.registration = this.sessionID;
   
       this.addMessageComposer(stringMessageComposer);
+      this.addMessageComposer(learnifyMessageComposer);
       this.addTransportHandler(consoleLogTransportHandler);
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
+      this.addTransportHandler(localStorageTransportHandler);
   
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
@@ -220,8 +223,7 @@ define([
       this.updateState();
       _.each(this._channels, function(channel) {
         if (channel._saveStateIsEnabled) {
-          this._transport_handlers[channel._transport._handlerName].saveState(
-            this._state, channel);
+          this._transport_handlers[channel._transport._handlerName].saveState(this._state, channel, this._config._courseID);
         }
       }, this);
     }, 
@@ -238,7 +240,7 @@ define([
       }, this);
       if (stateSourceChnl) {
         handlerName = stateSourceChnl._transport._handlerName;
-        state = this._transport_handlers[handlerName].loadState(stateSourceChnl);
+        state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
       }
       if (state) {
         _.each(Adapt.blocks.models, function(targetBlock) {
