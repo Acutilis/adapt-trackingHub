@@ -9,9 +9,6 @@
             "required": true,
             "properties": {
                 "config": {
-                    "type": "object"
-                },
-                "course": {
                     "type": "object",
                     "properties": {
                         "_trackingHub": {
@@ -33,7 +30,7 @@
                                 },
                                 "_courseID": {
                                     "type": "string",
-                                    "inputType": "TextArea",
+                                    "inputType": "Text",
                                     "title": "Course ID",
                                     "default": "",
                                     "validators": ["required"],
@@ -43,14 +40,14 @@
                                 "_channels": {
                                     "type": "array",
                                     "required": true,
-                                    "title": "Channels",
+                                    "title": "Items",
                                     "items": {
                                         "type": "object",
                                         "required": true,
                                         "properties": {
                                             "_name": {
                                                 "type": "string",
-                                                "inputType": "TextArea",
+                                                "inputType": "Text",
                                                 "title": "Channel name",
                                                 "default": "",
                                                 "validators": ["required"],
@@ -70,26 +67,49 @@
                                                 "help": "If set to 'false', Tracking Hub will be not send tracking to this channel"
                                             },
                                             "_msgComposerName": {
-                                                "type": "string",
-                                                "required": true,
-                                                "enum": ["xapiMessageComposer", "simpleJSONMessageComposer", "stringMessageComposer"],
-                                                "default": "xapiMessageComposer",
-                                                "editorOnly": true
+                                                "type" : "string",
+                                                "title" : "Composer",
+                                                "help" : "Each messageComposer has a _NAME property to identify it. In this configuration option we indicate the name of the composer we want for this channel.",
+                                                "required" : true,
+                                                "enum" : [ 
+                                                    "xapiMessageComposer", 
+                                                    "simpleJSONMessageComposer", 
+                                                    "stringMessageComposer"
+                                                ],
+                                                "inputType" : {
+                                                    "type" : "Select",
+                                                    "options" : [ 
+                                                        "xapiMessageComposer", 
+                                                        "simpleJSONMessageComposer", 
+                                                        "stringMessageComposer"
+                                                    ]
+                                                },
+                                                "default" : "xapiMessageComposer"
                                             },
                                             "_transport": {
                                                 "type": "object",
                                                 "required": true,
                                                 "properties": {
                                                     "_handlerName": {
+                                                        "title": "Handler",
+                                                        "Help": "",
                                                         "type": "string",
                                                         "required": true,
                                                         "enum": ["xapiTransportHandler", "samplePOSTTransportHandler", "consoleLogTransportHandler"],
+                                                        "inputType" : {
+                                                            "type" : "Select",
+                                                            "options" : [ 
+                                                                "xapiTransportHandler", 
+                                                                "samplePOSTTransportHandler", 
+                                                                "consoleLogTransportHandler"
+                                                            ]
+                                                        },
                                                         "default": "xapiTransportHandler",
                                                         "editorOnly": true
                                                     },
                                                     "_endpoint": {
                                                         "type": "string",
-                                                        "inputType": "TextArea",
+                                                        "inputType": "Text",
                                                         "title": "Channel URL",
                                                         "default": "",
                                                         "validators": [],
@@ -101,7 +121,7 @@
                                                         "properties": {
                                                             "_username": {
                                                                 "type": "string",
-                                                                "inputType": "TextArea",
+                                                                "inputType": "Text",
                                                                 "title": "Username",
                                                                 "default": "",
                                                                 "validators": [],
@@ -109,7 +129,7 @@
                                                             },
                                                             "_password": {
                                                                 "type": "string",
-                                                                "inputType": "TextArea",
+                                                                "inputType": "Text",
                                                                 "title": "Password",
                                                                 "default": "",
                                                                 "validators": [],
@@ -123,7 +143,7 @@
                                                 "type": "boolean",
                                                 "required": true,
                                                 "default": true,
-                                                "title": "Is enabled",
+                                                "title": "Save progress state",
                                                 "inputType": {
                                                     "type": "Boolean",
                                                     "options": [true, false]
@@ -135,7 +155,7 @@
                                                 "type": "boolean",
                                                 "required": true,
                                                 "default": true,
-                                                "title": "Is enabled",
+                                                "title": "State source?",
                                                 "inputType": {
                                                     "type": "Boolean",
                                                     "options": [true, false]
