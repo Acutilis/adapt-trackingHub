@@ -1,0 +1,156 @@
+{
+    "type": "object",
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "id": "http://jsonschema.net",
+    "required": false,
+    "properties": {
+        "pluginLocations": {
+            "type": "object",
+            "required": true,
+            "properties": {
+                "config": {
+                    "type": "object"
+                },
+                "course": {
+                    "type": "object",
+                    "properties": {
+                        "_trackingHub": {
+                            "type": "object",
+                            "required": false,
+                            "legend": "Tracking Hub",
+                            "properties": {
+                                "_isEnabled": {
+                                    "type": "boolean",
+                                    "required": true,
+                                    "default": true,
+                                    "title": "Is enabled",
+                                    "inputType": {
+                                        "type": "Boolean",
+                                        "options": [true, false]
+                                    },
+                                    "validators": [],
+                                    "help": "If set to 'false', Tracking Hub will be disabled on all components, pages, and menus"
+                                },
+                                "_courseID": {
+                                    "type": "string",
+                                    "inputType": "TextArea",
+                                    "title": "Course ID",
+                                    "default": "",
+                                    "validators": ["required"],
+                                    "help": "The unique global ID for this course (page) to be tracked by",
+                                    "translatable": true
+                                },
+                                "_channels": {
+                                    "type": "array",
+                                    "required": true,
+                                    "title": "Channels",
+                                    "items": {
+                                        "type": "object",
+                                        "required": true,
+                                        "properties": {
+                                            "_name": {
+                                                "type": "string",
+                                                "inputType": "TextArea",
+                                                "title": "Channel name",
+                                                "default": "",
+                                                "validators": ["required"],
+                                                "help": "An arbitrary name for the channel.",
+                                                "translatable": true
+                                            },
+                                            "_isEnabled": {
+                                                "type": "boolean",
+                                                "required": true,
+                                                "default": true,
+                                                "title": "Is enabled",
+                                                "inputType": {
+                                                    "type": "Boolean",
+                                                    "options": [true, false]
+                                                },
+                                                "validators": [],
+                                                "help": "If set to 'false', Tracking Hub will be not send tracking to this channel"
+                                            },
+                                            "_msgComposerName": {
+                                                "type": "string",
+                                                "required": true,
+                                                "enum": ["xapiMessageComposer", "simpleJSONMessageComposer", "stringMessageComposer"],
+                                                "default": "xapiMessageComposer",
+                                                "editorOnly": true
+                                            },
+                                            "_transport": {
+                                                "type": "object",
+                                                "required": true,
+                                                "properties": {
+                                                    "_handlerName": {
+                                                        "type": "string",
+                                                        "required": true,
+                                                        "enum": ["xapiTransportHandler", "samplePOSTTransportHandler", "consoleLogTransportHandler"],
+                                                        "default": "xapiTransportHandler",
+                                                        "editorOnly": true
+                                                    },
+                                                    "_endpoint": {
+                                                        "type": "string",
+                                                        "inputType": "TextArea",
+                                                        "title": "Channel URL",
+                                                        "default": "",
+                                                        "validators": [],
+                                                        "help": "Channel URL to whcih data is sent (e.g. http://10.0.3.22/data/xAPI/)"
+                                                    },
+                                                    "_auth": {
+                                                        "type": "object",
+                                                        "required": false,
+                                                        "properties": {
+                                                            "_username": {
+                                                                "type": "string",
+                                                                "inputType": "TextArea",
+                                                                "title": "Username",
+                                                                "default": "",
+                                                                "validators": [],
+                                                                "help": "A username to authenticate with this channel"
+                                                            },
+                                                            "_password": {
+                                                                "type": "string",
+                                                                "inputType": "TextArea",
+                                                                "title": "Password",
+                                                                "default": "",
+                                                                "validators": [],
+                                                                "help": "The password for this channel"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "_saveStateIsEnabled": {
+                                                "type": "boolean",
+                                                "required": true,
+                                                "default": true,
+                                                "title": "Is enabled",
+                                                "inputType": {
+                                                    "type": "Boolean",
+                                                    "options": [true, false]
+                                                },
+                                                "validators": [],
+                                                "help": "True or false, to indicate whether we want the state (progress) to be saved on this channel."
+                                            },
+                                            "_isStateSource": {
+                                                "type": "boolean",
+                                                "required": true,
+                                                "default": true,
+                                                "title": "Is enabled",
+                                                "inputType": {
+                                                    "type": "Boolean",
+                                                    "options": [true, false]
+                                                },
+                                                "validators": [],
+                                                "help": "True or false, to indicate that this channel is the one from which the course should load the saved state, if it exists. Important: there should only be one channel with this property set to true."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
