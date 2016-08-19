@@ -33,7 +33,7 @@ define([
        ],
        blocks: ['change:_isComplete'],
        course: ['change:_isComplete'],
-       components: ['change:_isInteractionComplete'] 
+       components: ['change:_isInteractionComplete']
     },
   
     initialize: function() {
@@ -73,14 +73,13 @@ define([
       this.setupInitialEventListeners();
       this.loadState();
       // Important: state change listeners smust be loaded AFTER loading the state
-      this.listenTo(Adapt.components, 'change:_isInteractionComplete',
-        this.onStateChanged);
+      this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
       this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
     },
-  
+
     onStateChanged: function(target) {
       var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
-      if (!target.get("_isComplete") == stateValue) {
+      if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
         this.saveState();
       }
     },
@@ -209,13 +208,14 @@ define([
     },
       
     updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {} };
+      this._state = this._state || { "blocks": {}, "components": {}, "answers": {} };
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
       }, this);
   
       _.each(Adapt.components.models, function(component) {
         this._state.components[component.get('_id')]=component.get('_isComplete');
+        this._state.answers[component.get('_id')]=component.get('_userAnswer');
       }, this);
     },
   
@@ -248,8 +248,14 @@ define([
         });
   
         _.each(Adapt.components.models, function(targetComponent) {
-          targetComponent.set('_isComplete',
-            state.components[targetComponent.get('_id')]);
+          targetComponent.set('_isComplete', state.components[targetComponent.get('_id')]);
+          if (state.answers[targetComponent.get('_id')]) {
+            targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]);
+            targetComponent.set('_isSubmitted', true);
+            targetComponent.set('_isInteractionComplete', true);
+            targetComponent.restoreUserAnswers();
+            targetComponent.updateButtons();
+          }
         });
       };
       this.updateState();

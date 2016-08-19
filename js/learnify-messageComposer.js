@@ -41,7 +41,8 @@ define(function() {
   
     Adapt_router_page: function (args) {
        // return ("visited page " + args.attributes._id);
-      return ("visited page " + args.get('_id'));
+      return ("_pageID:" + args.get('_trackingHub')._pageID);
+      //return ("visited page " + args.get('_id'));
     },
   
     Adapt_questionView_complete: function (args) {

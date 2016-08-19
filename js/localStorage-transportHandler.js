@@ -2,8 +2,8 @@ define(function() {
 
   var localStorageTransportHandler = _.extend({
 
-    _NAME: 'localStorageTransportHandler',
-
+    _NAME: 'localStorageTransportHandler',    
+    
     deliver: function(msg, channel) {
       console.log(msg);
     },
@@ -15,8 +15,8 @@ define(function() {
     },
 
     loadState: function(channel, courseID) {
-	console.log('loading state');
-	console.log(JSON.stringify(localStorage.getItem(courseID + '_state')));
+	    console.log('loading state');
+	    console.log(JSON.stringify(localStorage.getItem(courseID + '_state')));
     	return $.parseJSON(localStorage.getItem(courseID + '_state'));
     }
 
