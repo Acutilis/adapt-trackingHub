@@ -41,6 +41,7 @@ define(function() {
   
     Adapt_router_page: function (args) {
        // return ("visited page " + args.attributes._id);
+      return ("COMPLETE: " + args.get("completedChildrenAsPercentage"));
       return ("_pageID:" + args.get('_trackingHub')._pageID);
       //return ("visited page " + args.get('_id'));
     },
@@ -87,7 +88,13 @@ define(function() {
   
     course_change__isComplete: function (args) {
        return ("completed course " + args.get('_id'));
+    },
+    
+    page_change__isComplete: function (args) {
+       return ("completed page " + args.get('_id'));
     }
+    
+
   }, Backbone.Events);
 
   return (LearnifyMessageComposer);

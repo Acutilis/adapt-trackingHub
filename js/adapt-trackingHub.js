@@ -4,10 +4,11 @@ define([
   './learnify-messageComposer',
   './consoleLog-transportHandler',
   './localStorage-transportHandler',
+  './ODILRSStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, learnifyMessageComposer, consoleLogTransportHandler, localStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, learnifyMessageComposer, consoleLogTransportHandler, localStorageTransportHandler,ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -33,6 +34,9 @@ define([
        ],
        blocks: ['change:_isComplete'],
        course: ['change:_isComplete'],
+       contentObjects: ['change:_isComplete'],
+       contentObjects: ['change:_isInteractionComplete'],
+       contentObjects: ['change:_isVisible'],
        components: ['change:_isInteractionComplete']
     },
   
@@ -46,6 +50,7 @@ define([
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
       this.addTransportHandler(localStorageTransportHandler);
+      this.addTransportHandler(ODILRSStorageTransportHandler);
   
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
@@ -74,6 +79,7 @@ define([
       this.loadState();
       // Important: state change listeners smust be loaded AFTER loading the state
       this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
+      this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
       this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
     },
 
@@ -208,9 +214,12 @@ define([
     },
       
     updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {}, "answers": {} };
+      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
+        contentObject = block.getParent().getParent();
+        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
+        this._state.progress[pageID] = contentObject.get('completedChildrenAsPercentage');
       }, this);
   
       _.each(Adapt.components.models, function(component) {
@@ -249,7 +258,8 @@ define([
   
         _.each(Adapt.components.models, function(targetComponent) {
           targetComponent.set('_isComplete', state.components[targetComponent.get('_id')]);
-          if (state.answers[targetComponent.get('_id')]) {
+          answers = state.answers[targetComponent.get('_id')] || [];
+          if (answers.length > 0) {
             targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]);
             targetComponent.set('_isSubmitted', true);
             targetComponent.set('_isInteractionComplete', true);
