@@ -88,7 +88,7 @@ define([
       if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
         this.saveState();
       } else {
-	this.saveState();
+	      this.saveState();
       }
     },
   
@@ -217,13 +217,32 @@ define([
       
     updateState: function() {
       this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
+      _.each(Adapt.contentObjects.models, function(contentObject) {
+        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id') || null;
+        localProgress = 0;
+        progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
+        pageProgress = progressObject[pageID] || {};
+        if (contentObject.get('completedChildrenAsPercentage')) {
+          localProgress = contentObject.get('completedChildrenAsPercentage');
+          console.log(pageProgress.startTime);
+          if (localProgress > 10 && !pageProgress.startTime) {
+            console.log('overwrite?');
+            pageProgress.startTime = new Date();
+            pageProgress.progress = localProgress;
+          }
+          if (pageProgress.progress < 91 && localProgress > 90) {
+            pageProgress.endTime = new Date();
+            pageProgress.progress = 100;
+          }
+          pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
+          progressObject[pageID] = pageProgress;
+          localStorage.setItem('progress',JSON.stringify(progressObject));
+          this._state.progress[pageID] = pageProgress;
+        }
+      }, this);
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
-        contentObject = block.getParent().getParent();
-        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
-        this._state.progress[pageID] = contentObject.get('completedChildrenAsPercentage');
       }, this);
-  
       _.each(Adapt.components.models, function(component) {
         this._state.components[component.get('_id')]=component.get('_isComplete');
         this._state.answers[component.get('_id')]=component.get('_userAnswer');
@@ -254,6 +273,7 @@ define([
         state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
       }
       if (state) {
+        localStorage.setItem('progress',JSON.stringify(state.progress));
         _.each(Adapt.blocks.models, function(targetBlock) {
           targetBlock.set('_isComplete', state.blocks[targetBlock.get('_id')]);
         });

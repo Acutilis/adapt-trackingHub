@@ -75,7 +75,7 @@ define(function() {
     loadState: function(channel, courseID) {
       this._URL = channel._transport._endpoint;
       console.log('loading state');
-      state = $.parseJSON(localStorage.getItem(courseID + '_state'));
+      state = $.parseJSON(localStorage.getItem(courseID + '_state')) || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       loadID = this.queryString().id;
       if (!loadID && state.user) {
         loadID = state.user.id;
