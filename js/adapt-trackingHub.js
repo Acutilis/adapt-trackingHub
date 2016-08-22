@@ -87,6 +87,8 @@ define([
       var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
       if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
         this.saveState();
+      } else {
+	this.saveState();
       }
     },
   
@@ -263,8 +265,8 @@ define([
             targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]);
             targetComponent.set('_isSubmitted', true);
             targetComponent.set('_isInteractionComplete', true);
-            targetComponent.restoreUserAnswers();
-            targetComponent.updateButtons();
+            //targetComponent.restoreUserAnswers();
+            //targetComponent.updateButtons();
           }
         });
       };
