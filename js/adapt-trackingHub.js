@@ -54,6 +54,10 @@ define([
   
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
+
+      localStorage.removeItem('currentPage');
+      var local = this;
+      local.interval = setInterval(function() {local.focus_check();},3000);
     },
   
     onConfigLoaded: function() {
@@ -78,9 +82,17 @@ define([
       this.setupInitialEventListeners();
       this.loadState();
       // Important: state change listeners smust be loaded AFTER loading the state
+      //this.listenTo(Adapt.contentObjects, 'change:_isVisible', this.sessionTimer);
+      this.listenTo(Adapt, 'router:page', this.sessionTimer);
       this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
       this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
       this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
+    },
+
+    sessionTimer: function(target) {
+        pageID = target.get('_trackingHub')._pageID || target.get('_id') || null;
+        localStorage.setItem('currentPage',pageID);
+        this.window_focused();
     },
 
     onStateChanged: function(target) {
@@ -127,8 +139,7 @@ define([
     },
   
     setupInitialEventListeners: function() {
-      this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange,
-        this);
+      this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
     
       _.each(_.keys(this._TRACKED_MSGS), function (eventSourceName) {
@@ -217,26 +228,36 @@ define([
       
     updateState: function() {
       this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
+      this._state.courseID = this._config._courseID;
+      this._state._isComplete = Adapt.course.get('_isComplete');
       _.each(Adapt.contentObjects.models, function(contentObject) {
-        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id') || null;
+        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
         localProgress = 0;
         progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
         pageProgress = progressObject[pageID] || {};
+        this._state.progress[pageID] = {};
+
+        pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+        thisPage = pageTimes[pageID] || {};
+        sessionTime = thisPage.sessionTime || undefined;
+        pageProgress.sessionTime = sessionTime;
+
         if (contentObject.get('completedChildrenAsPercentage')) {
           localProgress = contentObject.get('completedChildrenAsPercentage');
           if (localProgress > 10 && !pageProgress.startTime) {
             pageProgress.startTime = new Date();
             pageProgress.progress = localProgress;
           }
-          if (pageProgress.progress < 91 && localProgress > 90) {
+          if (localProgress > 99) {
             pageProgress.endTime = new Date();
             pageProgress.progress = 100;
+            pageProgress._isComplete = true;
           }
           pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
           progressObject[pageID] = pageProgress;
           localStorage.setItem('progress',JSON.stringify(progressObject));
-          this._state.progress[pageID] = pageProgress;
         }
+        this._state.progress[pageID] = pageProgress;
       }, this);
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
@@ -244,7 +265,15 @@ define([
       _.each(Adapt.components.models, function(component) {
         this._state.components[component.get('_id')]=component.get('_isComplete');
         this._state.answers[component.get('_id')]=component.get('_userAnswer');
+        pageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || null;
+        if (pageID && component.get('_userAnswer')) {
+          this._state.progress[pageID].answers = {};
+          this._state.progress[pageID].answers[component.get('_id')] = {};
+          this._state.progress[pageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
+          this._state.progress[pageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
+        }
       }, this);
+      this.window_focused();
     },
   
     saveState: function() {
@@ -290,6 +319,62 @@ define([
       };
       this.updateState();
     },
+
+    focus_check: function() {
+      pageID = localStorage.getItem('currentPage');
+      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      pageTimes = sessionTimes[pageID] || {};
+      start_focus_time = undefined;
+      last_user_interaction = undefined;   
+      if (pageTimes.last_user_interaction) {
+          last_user_interaction = new Date(pageTimes.last_user_interaction)
+      }
+      if (pageTimes.start_focus_time) {
+        start_focus_time = new Date(pageTimes.start_focus_time)
+      }
+      if (last_user_interaction != undefined) {
+        var curr_time = new Date();
+        if((curr_time.getTime() - last_user_interaction.getTime()) > (20 * 1000) && start_focus_time != undefined) {
+            this.window_unfocused();
+        }
+      }
+    },
+
+    window_focused: function() {
+      pageID = localStorage.getItem('currentPage');
+      if (pageID == null) {
+        return;
+      }
+      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      pageTimes = sessionTimes[pageID] || {};
+      if (!pageTimes.start_focus_time) {
+        pageTimes.start_focus_time = new Date();
+      }
+      pageTimes.last_user_interaction = new Date();
+      sessionTimes[pageID] = pageTimes;
+      localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
+    },
+
+    window_unfocused: function() {
+      pageID = localStorage.getItem('currentPage');;
+      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      pageTimes = sessionTimes[pageID] || {};
+      start_focus_time = undefined;
+      if (pageTimes.start_focus_time) {
+        start_focus_time = new Date(pageTimes.start_focus_time);
+      }
+      total_focus_time = pageTimes.sessionTime || 0;
+      if (start_focus_time != undefined) {
+        var stop_focus_time = new Date();
+        var to_add = stop_focus_time.getTime() - start_focus_time.getTime();
+        to_add = Math.round(to_add / 1000);
+        var total = total_focus_time + to_add;
+        pageTimes.sessionTime = total;
+        pageTimes.start_focus_time = undefined;
+      }
+      sessionTimes[pageID] = pageTimes;
+      localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
+    },
   
     onDocumentVisibilityChange: function() {
       // Use visibilitystate instead of unload or beforeunload. It's more reliable.
@@ -297,14 +382,17 @@ define([
       // https://www.igvita.com/2015/11/20/dont-lose-user-and-app-state-use-page-visibility/
   
       if (document.visibilityState == "hidden") {
+        this.window_unfocused();
         this.saveState();
       };
     
       if (document.visibilityState == "visible") {
-        this.loadState();
+        this.window_focused();
+        //this.loadState();
       };
        
       $(document).off("visibilitychange", this._onDocumentVisibilityChange);
+      $(document).on("visibilitychange", this._onDocumentVisibilityChange);
     }
   }, Backbone.Events);
   

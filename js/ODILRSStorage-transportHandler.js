@@ -18,7 +18,6 @@ define(function() {
         url: this._URL + "store.php",         
         data: send,
         success: function(ret) {
-          console.log("UpdatedLRS");
           //if (flag) { setSaveClass('cloud_success'); }
         },
         error: function (xhr, ajaxOptions, thrownError) {
@@ -60,8 +59,6 @@ define(function() {
 
     saveState: function(state, channel, courseID) {
       this._URL = channel._transport._endpoint;
-      console.log('ODIStorageTransportHandler Saving state!!');
-      console.log(JSON.stringify(state));
       user = state.user || {};
       if (!user.id) {
         user.id = localStorage.getItem("UserID") || this.getUserID();
@@ -74,7 +71,6 @@ define(function() {
 
     loadState: function(channel, courseID) {
       this._URL = channel._transport._endpoint;
-      console.log('loading state');
       state = $.parseJSON(localStorage.getItem(courseID + '_state')) || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       loadID = this.queryString().id;
       if (!loadID && state.user) {
