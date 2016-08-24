@@ -224,9 +224,7 @@ define([
         pageProgress = progressObject[pageID] || {};
         if (contentObject.get('completedChildrenAsPercentage')) {
           localProgress = contentObject.get('completedChildrenAsPercentage');
-          console.log(pageProgress.startTime);
           if (localProgress > 10 && !pageProgress.startTime) {
-            console.log('overwrite?');
             pageProgress.startTime = new Date();
             pageProgress.progress = localProgress;
           }
