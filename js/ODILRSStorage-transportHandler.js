@@ -1,4 +1,6 @@
-define(function() {
+define([
+  'coreJS/adapt',
+], function(Adapt) {
 
   var ODILRSStorageTransportHandler = _.extend({
 
@@ -10,6 +12,7 @@ define(function() {
     },
 
     updateLRS: function(state) {
+      Adapt.trigger('trackingHub:saving');
       if (!state.user.id || state.user.id == null || state.user.id == "null") return;
       send = {};
       send.data = JSON.stringify(state);
@@ -18,10 +21,12 @@ define(function() {
         url: this._URL + "store.php",         
         data: send,
         success: function(ret) {
+          Adapt.trigger('trackingHub:success');
           //if (flag) { setSaveClass('cloud_success'); }
         },
         error: function (xhr, ajaxOptions, thrownError) {
           console.log("LRS update failed " + thrownError);
+          Adapt.trigger('trackingHub:failed');
           //if (flag) { setSaveClass('cloud_failed'); }
         }
       });

@@ -230,6 +230,7 @@ define([
       this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       this._state.courseID = this._config._courseID;
       this._state._isComplete = Adapt.course.get('_isComplete');
+      this._state.user = $.parseJSON(localStorage.getItem("user")) || {};
       _.each(Adapt.contentObjects.models, function(contentObject) {
         pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
         localProgress = 0;
@@ -301,6 +302,7 @@ define([
       }
       if (state) {
         localStorage.setItem('progress',JSON.stringify(state.progress));
+        localStorage.setItem('user',JSON.stringify(state.user));
         _.each(Adapt.blocks.models, function(targetBlock) {
           targetBlock.set('_isComplete', state.blocks[targetBlock.get('_id')]);
         });
