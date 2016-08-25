@@ -85,6 +85,7 @@ define([
         localStorage.setItem('UserID',loadID);
         url = this._URL + 'load.php?id=' + loadID;
         // This feels so wrong!
+        try {
         return $.parseJSON($.ajax({
           url: url,
           async: false,
@@ -94,8 +95,10 @@ define([
           },
           error: function (xhr, ajaxOptions, thrownError) {
             console.log("LRS load failed " + thrownError);
+            return '{ "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }';
           }
         }).responseText);
+      } catch (err) { return state; }
       } else {
         return state;
       }
