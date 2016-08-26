@@ -231,8 +231,8 @@ define([
       this._state.courseID = this._config._courseID;
       this._state._isComplete = Adapt.course.get('_isComplete');
       this._state.user = $.parseJSON(localStorage.getItem("user")) || {};
+      pageID = localStorage.getItem('currentPage');
       _.each(Adapt.contentObjects.models, function(contentObject) {
-        pageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
         localProgress = 0;
         progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
         pageProgress = progressObject[pageID] || {};
@@ -266,9 +266,8 @@ define([
       _.each(Adapt.components.models, function(component) {
         this._state.components[component.get('_id')]=component.get('_isComplete');
         this._state.answers[component.get('_id')]=component.get('_userAnswer');
-        pageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || null;
         if (pageID && component.get('_userAnswer')) {
-          this._state.progress[pageID].answers = {};
+          this._state.progress[pageID].answers = this._state.progress[pageID].answers || {};
           this._state.progress[pageID].answers[component.get('_id')] = {};
           this._state.progress[pageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
           this._state.progress[pageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
