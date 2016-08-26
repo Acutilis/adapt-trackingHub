@@ -16,6 +16,7 @@ define([
     _sessionID: null,
     _config: null,
     _channels: [],
+    _data: {},
     _message_composers: {},
     _transport_handlers: {},
     _xapiManager: xapiManager,
@@ -55,7 +56,7 @@ define([
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
 
-      localStorage.removeItem('currentPage');
+      this._data.currentPage = "";
       var local = this;
       local.interval = setInterval(function() {local.focus_check();},3000);
     },
@@ -91,7 +92,7 @@ define([
 
     sessionTimer: function(target) {
         pageID = target.get('_trackingHub')._pageID || target.get('_id') || null;
-        localStorage.setItem('currentPage',pageID);
+        this._data.currentPage = pageID;
         this.window_focused();
     },
 
@@ -230,15 +231,22 @@ define([
       this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       this._state.courseID = this._config._courseID;
       this._state._isComplete = Adapt.course.get('_isComplete');
-      this._state.user = $.parseJSON(localStorage.getItem("user")) || {};
-      pageID = localStorage.getItem('currentPage');
+      this._state.user = this._data.user || {};
+      //$.parseJSON(localStorage.getItem("user")) || {};
+      pageID = this._data.currentPage;
       _.each(Adapt.contentObjects.models, function(contentObject) {
+        // IDIOT DAVE THIS IS EVERY PAGE SO NOT JUST THE ONE ON THE SCREEN!!! 
+        //localID = contentObject.getParent()
         localProgress = 0;
-        progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
+        progressObject = this._data.progress || {};
+        //progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
         pageProgress = progressObject[pageID] || {};
-        this._state.progress[pageID] = {};
+        if (pageID) {
+          this._state.progress[pageID] = {};
+        }
 
-        pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+        pageTimes = this._data.sessionTimes || {};
+        //pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
         thisPage = pageTimes[pageID] || {};
         sessionTime = thisPage.sessionTime || undefined;
         pageProgress.sessionTime = sessionTime;
@@ -255,10 +263,15 @@ define([
             pageProgress._isComplete = true;
           }
           pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
-          progressObject[pageID] = pageProgress;
-          localStorage.setItem('progress',JSON.stringify(progressObject));
+          if (pageID) {
+            this._data.progress[pageID] = progressObject;
+          }
+          
+          //localStorage.setItem('progress',JSON.stringify(progressObject));
         }
-        this._state.progress[pageID] = pageProgress;
+        if (pageID) {
+          this._state.progress[pageID] = pageProgress;
+        }
       }, this);
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
@@ -300,8 +313,10 @@ define([
         state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
       }
       if (state) {
-        localStorage.setItem('progress',JSON.stringify(state.progress));
-        localStorage.setItem('user',JSON.stringify(state.user));
+        this._data.progress = state.progress;
+        this._data.user = state.user;
+        //localStorage.setItem('progress',JSON.stringify(state.progress));
+        //localStorage.setItem('user',JSON.stringify(state.user));
         _.each(Adapt.blocks.models, function(targetBlock) {
           targetBlock.set('_isComplete', state.blocks[targetBlock.get('_id')]);
         });
@@ -322,8 +337,9 @@ define([
     },
 
     focus_check: function() {
-      pageID = localStorage.getItem('currentPage');
-      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      pageID = this._data.currentPage;
+      sessionTimes = this._data.sessionTimes || {};
+      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
       pageTimes = sessionTimes[pageID] || {};
       start_focus_time = undefined;
       last_user_interaction = undefined;   
@@ -342,23 +358,26 @@ define([
     },
 
     window_focused: function() {
-      pageID = localStorage.getItem('currentPage');
+      pageID = this._data.currentPage;
       if (pageID == null) {
         return;
       }
-      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      sessionTimes = this._data.sessionTimes || {};
+      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
       pageTimes = sessionTimes[pageID] || {};
       if (!pageTimes.start_focus_time) {
         pageTimes.start_focus_time = new Date();
       }
       pageTimes.last_user_interaction = new Date();
       sessionTimes[pageID] = pageTimes;
-      localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
+      this._data.sessionTimes = sessionTimes;
+      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
     },
 
     window_unfocused: function() {
-      pageID = localStorage.getItem('currentPage');;
-      sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
+      pageID = this._data.currentPage;
+      sessionTimes = this._data.sessionTimes || {};
+      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
       pageTimes = sessionTimes[pageID] || {};
       start_focus_time = undefined;
       if (pageTimes.start_focus_time) {
@@ -374,7 +393,8 @@ define([
         pageTimes.start_focus_time = undefined;
       }
       sessionTimes[pageID] = pageTimes;
-      localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
+      this._data.sessionTimes = sessionTimes;
+      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
     },
   
     onDocumentVisibilityChange: function() {

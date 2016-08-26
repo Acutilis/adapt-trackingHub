@@ -16,6 +16,7 @@ define([
       if (!state.user.id || state.user.id == null || state.user.id == "null") return;
       send = {};
       send.data = JSON.stringify(state);
+      console.log(send.data);
       $.ajax({
         type: "POST",
         url: this._URL + "store.php",         
@@ -70,13 +71,13 @@ define([
       }
       user.lastSave = new Date().toString();
       state.user = user;
-      localStorage.setItem(courseID + '_state',JSON.stringify(state));
+      localStorage.setItem(courseID,JSON.stringify(state));
       this.updateLRS(state);
     },
 
     loadState: function(channel, courseID) {
       this._URL = channel._transport._endpoint;
-      state = $.parseJSON(localStorage.getItem(courseID + '_state')) || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
+      state = $.parseJSON(localStorage.getItem(courseID )) || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       loadID = this.queryString().id;
       if (!loadID && state.user) {
         loadID = state.user.id;
