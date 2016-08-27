@@ -78,7 +78,7 @@ define([
         }
       }, this);
     },
-  
+
     onDataReady: function() {
       this.setupInitialEventListeners();
       this.loadState();
@@ -88,14 +88,25 @@ define([
       this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
       this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
       this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
+      this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
     },
 
     sessionTimer: function(target) {
         pageID = target.get('_trackingHub')._pageID || target.get('_id') || null;
         this._data.currentPage = pageID;
         this.window_focused();
+        Adapt.trigger('trackingHub:getUserDetails',this._data.user || {});
     },
 
+    updateUserDetails: function(user) {
+      localuser = this._data.user || {};
+      for(var prop in user) {
+        localuser[prop] = user[prop];
+      }
+      this._data.user = localuser;
+      console.log(localuser);
+    },
+    
     onStateChanged: function(target) {
       var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
       if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
@@ -228,26 +239,29 @@ define([
     },
       
     updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
+      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {}};
       this._state.courseID = this._config._courseID;
+      this.window_unfocused();
       this._state._isComplete = Adapt.course.get('_isComplete');
       this._state.user = this._data.user || {};
       //$.parseJSON(localStorage.getItem("user")) || {};
       pageID = this._data.currentPage;
       _.each(Adapt.contentObjects.models, function(contentObject) {
+        contentPageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
         // IDIOT DAVE THIS IS EVERY PAGE SO NOT JUST THE ONE ON THE SCREEN!!! 
         //localID = contentObject.getParent()
         localProgress = 0;
         progressObject = this._data.progress || {};
         //progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
-        pageProgress = progressObject[pageID] || {};
-        if (pageID) {
-          this._state.progress[pageID] = {};
+        pageProgress = progressObject[contentPageID] || {};
+        if (contentPageID) {
+          this._state.progress[contentPageID] = {};
         }
 
         pageTimes = this._data.sessionTimes || {};
+        thisPage = pageTimes[contentPageID] || {};
         //pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-        thisPage = pageTimes[pageID] || {};
+        
         sessionTime = thisPage.sessionTime || undefined;
         pageProgress.sessionTime = sessionTime;
 
@@ -263,30 +277,30 @@ define([
             pageProgress._isComplete = true;
           }
           pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
-          if (pageID) {
-            this._data.progress[pageID] = progressObject;
+          if (contentPageID) {
+            this._data.progress[contentPageID] = pageProgress;
           }
           
           //localStorage.setItem('progress',JSON.stringify(progressObject));
         }
-        if (pageID) {
-          this._state.progress[pageID] = pageProgress;
+        if (contentPageID) {
+          this._state.progress[contentPageID] = pageProgress;
         }
       }, this);
       _.each(Adapt.blocks.models, function(block) {
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
       }, this);
       _.each(Adapt.components.models, function(component) {
+        contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
         this._state.components[component.get('_id')]=component.get('_isComplete');
         this._state.answers[component.get('_id')]=component.get('_userAnswer');
-        if (pageID && component.get('_userAnswer')) {
-          this._state.progress[pageID].answers = this._state.progress[pageID].answers || {};
-          this._state.progress[pageID].answers[component.get('_id')] = {};
-          this._state.progress[pageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
-          this._state.progress[pageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
+        if (contentPageID && component.get('_userAnswer')) {
+          this._state.progress[contentPageID].answers = this._state.progress[contentPageID].answers || {};
+          this._state.progress[contentPageID].answers[component.get('_id')] = {};
+          this._state.progress[contentPageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
+          this._state.progress[contentPageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
         }
       }, this);
-      this.window_focused();
     },
   
     saveState: function() {
@@ -359,7 +373,7 @@ define([
 
     window_focused: function() {
       pageID = this._data.currentPage;
-      if (pageID == null) {
+      if (pageID == null || !pageID) {
         return;
       }
       sessionTimes = this._data.sessionTimes || {};
@@ -390,7 +404,7 @@ define([
         to_add = Math.round(to_add / 1000);
         var total = total_focus_time + to_add;
         pageTimes.sessionTime = total;
-        pageTimes.start_focus_time = undefined;
+        pageTimes.start_focus_time = stop_focus_time;
       }
       sessionTimes[pageID] = pageTimes;
       this._data.sessionTimes = sessionTimes;

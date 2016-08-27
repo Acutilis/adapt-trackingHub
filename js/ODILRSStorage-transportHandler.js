@@ -16,7 +16,6 @@ define([
       if (!state.user.id || state.user.id == null || state.user.id == "null") return;
       send = {};
       send.data = JSON.stringify(state);
-      console.log(send.data);
       $.ajax({
         type: "POST",
         url: this._URL + "store.php",         
