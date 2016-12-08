@@ -88,6 +88,7 @@ define([
       this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
       this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
       this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
+//      this.listenTo(Adapt, 'assessment:complete', this.updateAssessmentDetails);
       this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
     },
 
@@ -106,7 +107,19 @@ define([
       this._data.user = localuser;
       console.log(localuser);
     },
-    
+/*
+    updateAssessmentDetails: function(assessment) {
+      allassessments = this._data.assessments || {};
+      local = allassessments[this._data.currentPage] || {};
+      for(var prop in assessment) {
+        local[prop] = assessment[prop];
+      }
+      allassessments[this._data.currentPage] = local;
+      this._data.assessments = allassessments;
+      this.saveState();
+      console.log(allassessments);
+    },
+  */  
     onStateChanged: function(target) {
       var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
       if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
@@ -239,10 +252,12 @@ define([
     },
       
     updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {}};
-      this._state.courseID = this._config._courseID;
+      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
+      courseID = this._config._courseID;
+      lang = Adapt.config.get('_activeLanguage');
       this.window_unfocused();
-      this._state._isComplete = Adapt.course.get('_isComplete');
+      // THIS DOESN'T WORK
+      //this._state._isComplete = Adapt.course.get('_isComplete');
       this._state.user = this._data.user || {};
       //$.parseJSON(localStorage.getItem("user")) || {};
       pageID = this._data.currentPage;
@@ -264,7 +279,10 @@ define([
         
         sessionTime = thisPage.sessionTime || undefined;
         pageProgress.sessionTime = sessionTime;
-
+        pageProgress.courseID = courseID;
+        pageProgress.lang = lang;
+        pageProgress.theme = theme;
+        pageProgress._isComplete = false;
         if (contentObject.get('completedChildrenAsPercentage')) {
           localProgress = contentObject.get('completedChildrenAsPercentage');
           if (localProgress > 10 && !pageProgress.startTime) {
@@ -293,8 +311,8 @@ define([
       _.each(Adapt.components.models, function(component) {
         contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
         this._state.components[component.get('_id')]=component.get('_isComplete');
-        this._state.answers[component.get('_id')]=component.get('_userAnswer');
         if (contentPageID && component.get('_userAnswer')) {
+          this._state.answers[component.get('_id')]=component.get('_userAnswer');
           this._state.progress[contentPageID].answers = this._state.progress[contentPageID].answers || {};
           this._state.progress[contentPageID].answers[component.get('_id')] = {};
           this._state.progress[contentPageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');

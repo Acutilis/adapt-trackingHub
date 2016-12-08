@@ -75,7 +75,12 @@ define(function() {
     },
   
     Adapt_assessments_complete: function (args) {  // plural
-       return ("completed assesment " + args.id);
+       var obj = {};
+       obj.isPass = args.isPass;
+       obj.isComplete = args.isComplete;
+       obj.scoreAsPercent = args.scoreAsPercent;
+       //console.log(JSON.stringify(obj));
+       return ("completed assesment " + JSON.stringify(obj));
     },
   
     Adapt_assessments_reset: function (args) {   // plural

@@ -98,7 +98,9 @@ define([
             return '{ "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }';
           }
         }).responseText);
-      } catch (err) { return state; }
+      } catch (err) { 
+        return state; 
+      }
       } else {
         return state;
       }
