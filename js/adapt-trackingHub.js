@@ -324,7 +324,7 @@ define([
           }
           if (component.get('_isCorrect') == false) {
             this._state.progress[contentPageID].answers._assessmentState = "Failed";  
-          } else if (component.get('_isCorrect') == true && (this._state.progress[contentPageID].answers._assessmentState == "Passed" || this._state.progress[contentPageID].answers._assessmentState == "Not Attempted")) {
+          } else if (component.get('_isCorrect') == true && this._state.progress[contentPageID].answers._assessmentState != "Failed") {
             this._state.progress[contentPageID].answers._assessmentState = "Passed";
           }
           if (component.get('_userAnswer').length < 1) {
