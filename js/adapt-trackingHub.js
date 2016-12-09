@@ -105,7 +105,6 @@ define([
         localuser[prop] = user[prop];
       }
       this._data.user = localuser;
-      console.log(localuser);
     },
 /*
     updateAssessmentDetails: function(assessment) {
@@ -310,13 +309,27 @@ define([
       }, this);
       _.each(Adapt.components.models, function(component) {
         contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
+
         this._state.components[component.get('_id')]=component.get('_isComplete');
         if (contentPageID && component.get('_userAnswer')) {
-          this._state.answers[component.get('_id')]=component.get('_userAnswer');
+          this._state.answers[component.get('_id')] = {};
+          this._state.answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
+          this._state.answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
           this._state.progress[contentPageID].answers = this._state.progress[contentPageID].answers || {};
           this._state.progress[contentPageID].answers[component.get('_id')] = {};
           this._state.progress[contentPageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
           this._state.progress[contentPageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
+          if (!this._state.progress[contentPageID].answers._assessmentState) {
+            this._state.progress[contentPageID].answers._assessmentState = "Not Attempted";
+          }
+          if (component.get('_isCorrect') == false) {
+            this._state.progress[contentPageID].answers._assessmentState = "Failed";  
+          } else if (component.get('_isCorrect') == true && (this._state.progress[contentPageID].answers._assessmentState == "Passed" || this._state.progress[contentPageID].answers._assessmentState == "Not Attempted")) {
+            this._state.progress[contentPageID].answers._assessmentState = "Passed";
+          }
+          if (component.get('_userAnswer').length < 1) {
+            this._state.progress[contentPageID].answers._assessmentState = "Incomplete";  
+          }
         }
       }, this);
     },
@@ -355,11 +368,14 @@ define([
   
         _.each(Adapt.components.models, function(targetComponent) {
           targetComponent.set('_isComplete', state.components[targetComponent.get('_id')]);
-          answers = state.answers[targetComponent.get('_id')] || [];
-          if (answers.length > 0) {
-            targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]);
-            targetComponent.set('_isSubmitted', true);
-            targetComponent.set('_isInteractionComplete', true);
+          answers = state.answers[targetComponent.get('_id')] || false;
+          if (answers) {
+            if (answers._userAnswer.length > 0) {
+              targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]._userAnswer);
+              targetComponent.set('_isCorrect', state.answers[targetComponent.get('_id')]._isCorrect);
+              targetComponent.set('_isSubmitted', true);
+              targetComponent.set('_isInteractionComplete', true);
+            }
             //targetComponent.restoreUserAnswers();
             //targetComponent.updateButtons();
           }
