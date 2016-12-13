@@ -10,7 +10,7 @@ define(['./xapi-manager'], function(xapiManager) {
       wrapper.sendStatement(msg);
     },
 
-    saveState: function(state, channel) {
+    saveState: function(state, channel, courseID) {
       var wrapper = xapiManager._wrappers[channel._name];
       wrapper.sendState(xapiManager.courseID, xapiManager.actor,
         this._STATE_ID, null, state);

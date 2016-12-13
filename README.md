@@ -2,12 +2,15 @@
 
 A flexible Adapt extension that implements the basic mechanisms for multichannel tracking, including xAPI. It is extensible, to allow for different models of tracking.
 
-This is only for the adapt framework (no compatibility with the authoring tool at this point).  This is an early version, not intended to be used in production yet.
+This is only for the adapt framework (compatability for the authoring tool added by https://github.com/theodi/).  This is an early version, not intended to be used in production yet.
 
 Please note that this is neither endorsed nor supported by the official Adapt Project, it's just a 3rd party contribution.
 
+## Authoring tool installation
 
-## Installation
+Ddownload repository as a zip file and import the extension into the adapt authoring tool (v0.2.0+). In the authoring tool you can configure the extension from the configuration settings screen of a course. 
+
+## Command-line installation
 
 Since this extension is in such an early stage, it has not yet been registered (it cannot be installed on the command line using 'adapt install').
 
@@ -71,6 +74,7 @@ An example of such an _external_ messageComposer is [adapt-simpleJSONMessageComp
 ### Transport Handlers
 The trackingHub extension bundles two tranportHandlers that are always available:
 - **consoleLog-transportHandler**: It is the simplest transport handler. It just calls console.log with the message it receives.
+- **localStorage-transportHandler**: Stores state on localstorage and loads it again when you refresh, logs all other messages to the console.
 - **xapi-transportHandler**: Implements communication with an LRS, using xAPI.
 
 A transportHandler has a function called `deliver`, which just takes the message and the channel. With that, it has enough information to deliver the message.

@@ -1,0 +1,223 @@
+{
+    "type": "object",
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "id": "http://jsonschema.net",
+    "required": false,
+    "properties" : {
+        "pluginLocations" : {
+            "type" : "object",
+            "required" : true,
+            "properties" : {
+                "contentobject" : {
+                    "type" : "object",
+                    "properties" : {
+                        "_trackingHub" : {
+                            "type" : "object",
+                            "required" : false,
+                            "legend" : "Tracking Hub",
+                            "properties" : {
+                                "_pageID" : {
+                                    "type" : "string",
+                                    "inputType" : "Text",
+                                    "title" : "Page ID",
+                                    "default" : "",
+                                    "validators" : [],
+                                    "help" : "The unique global ID for this page to be tracked by. Note that if this is set then this will be used in place of the courseID for tracking.",
+                                    "translatable" : true
+                                }
+                            }
+                        }
+                    }
+                },
+                "config" : {
+                    "type" : "object",
+                    "properties" : {
+                        "_trackingHub" : {
+                            "type" : "object",
+                            "required" : false,
+                            "legend" : "Tracking Hub",
+                            "properties" : {
+                                "_isEnabled" : {
+                                    "type" : "boolean",
+                                    "required" : true,
+                                    "default" : true,
+                                    "title" : "Is enabled",
+                                    "inputType" : {
+                                        "type" : "Boolean",
+                                        "options" : [ 
+                                            true, 
+                                            false
+                                        ]
+                                    },
+                                    "validators" : [],
+                                    "help" : "If set to 'false', Tracking Hub will be disabled on all components, pages, and menus"
+                                },
+                                "_courseID" : {
+                                    "type" : "string",
+                                    "inputType" : "Text",
+                                    "title" : "Course ID",
+                                    "default" : "",
+                                    "validators" : [ 
+                                        "required"
+                                    ],
+                                    "help" : "The unique global ID for this course (page) to be tracked by",
+                                    "translatable" : true
+                                },
+                                "_channels" : {
+                                    "type" : "array",
+                                    "required" : true,
+                                    "title" : "Items",
+                                    "items" : {
+                                        "type" : "object",
+                                        "required" : true,
+                                        "properties" : {
+                                            "_name" : {
+                                                "type" : "string",
+                                                "inputType" : "Text",
+                                                "title" : "Channel name",
+                                                "default" : "",
+                                                "validators" : [ 
+                                                    "required"
+                                                ],
+                                                "help" : "An arbitrary name for the channel.",
+                                                "translatable" : true
+                                            },
+                                            "_isEnabled" : {
+                                                "type" : "boolean",
+                                                "required" : true,
+                                                "default" : true,
+                                                "title" : "Is enabled",
+                                                "inputType" : {
+                                                    "type" : "Boolean",
+                                                    "options" : [ 
+                                                        true, 
+                                                        false
+                                                    ]
+                                                },
+                                                "validators" : [],
+                                                "help" : "If set to 'false', Tracking Hub will be not send tracking to this channel"
+                                            },
+                                            "_msgComposerName" : {
+                                                "type" : "string",
+                                                "title" : "Composer",
+                                                "help" : "Each messageComposer has a _NAME property to identify it. In this configuration option we indicate the name of the composer we want for this channel.",
+                                                "required" : true,
+                                                "enum" : [ 
+                                                    "xapiMessageComposer", 
+                                                    "simpleJSONMessageComposer", 
+                                                    "stringMessageComposer",
+                                                    "learnifyMessageComposer"
+                                                ],
+                                                "inputType" : {
+                                                    "type" : "Select",
+                                                    "options" : [ 
+                                                        "xapiMessageComposer", 
+                                                        "simpleJSONMessageComposer", 
+                                                        "stringMessageComposer",
+                                                        "learnifyMessageComposer"
+                                                    ]
+                                                },
+                                                "default" : "xapiMessageComposer"
+                                            },
+                                            "_transport" : {
+                                                "type" : "object",
+                                                "required" : true,
+                                                "properties" : {
+                                                    "_handlerName" : {
+                                                        "title" : "Handler",
+                                                        "Help" : "",
+                                                        "type" : "string",
+                                                        "required" : true,
+                                                        "enum" : [ 
+                                                            "xapiTransportHandler", 
+                                                            "samplePOSTTransportHandler", 
+                                                            "consoleLogTransportHandler",
+                                                            "localStorageTransportHandler",
+                                                            "ODILRSStorageTransportHandler"
+                                                        ],
+                                                        "inputType" : {
+                                                            "type" : "Select",
+                                                            "options" : [ 
+                                                                "xapiTransportHandler", 
+                                                                "samplePOSTTransportHandler", 
+                                                                "consoleLogTransportHandler",
+                                                                "localStorageTransportHandler",
+                                                                "ODILRSStorageTransportHandler"
+                                                            ]
+                                                        },
+                                                        "default" : "xapiTransportHandler",
+                                                        "editorOnly" : true
+                                                    },
+                                                    "_endpoint" : {
+                                                        "type" : "string",
+                                                        "inputType" : "Text",
+                                                        "title" : "Channel URL",
+                                                        "default" : "",
+                                                        "validators" : [],
+                                                        "help" : "Channel URL to whcih data is sent (e.g. http://10.0.3.22/data/xAPI/)"
+                                                    },
+                                                    "_auth" : {
+                                                        "type" : "object",
+                                                        "required" : false,
+                                                        "properties" : {
+                                                            "_username" : {
+                                                                "type" : "string",
+                                                                "inputType" : "Text",
+                                                                "title" : "Username",
+                                                                "default" : "",
+                                                                "validators" : [],
+                                                                "help" : "A username to authenticate with this channel"
+                                                            },
+                                                            "_password" : {
+                                                                "type" : "string",
+                                                                "inputType" : "Text",
+                                                                "title" : "Password",
+                                                                "default" : "",
+                                                                "validators" : [],
+                                                                "help" : "The password for this channel"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "_saveStateIsEnabled" : {
+                                                "type" : "boolean",
+                                                "required" : true,
+                                                "default" : true,
+                                                "title" : "Save progress state",
+                                                "inputType" : {
+                                                    "type" : "Boolean",
+                                                    "options" : [ 
+                                                        true, 
+                                                        false
+                                                    ]
+                                                },
+                                                "validators" : [],
+                                                "help" : "True or false, to indicate whether we want the state (progress) to be saved on this channel."
+                                            },
+                                            "_isStateSource" : {
+                                                "type" : "boolean",
+                                                "required" : true,
+                                                "default" : true,
+                                                "title" : "State source?",
+                                                "inputType" : {
+                                                    "type" : "Boolean",
+                                                    "options" : [ 
+                                                        true, 
+                                                        false
+                                                    ]
+                                                },
+                                                "validators" : [],
+                                                "help" : "True or false, to indicate that this channel is the one from which the course should load the saved state, if it exists. Important: there should only be one channel with this property set to true."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
