@@ -1,0 +1,359 @@
+{
+    "_id" : "9450972D-B6B0-470A-8E11-6567829E2A4A",
+    "blocks" : {
+        "57d9233c4d7b7e82691e3c5b" : true,
+        "57d9235b4d7b7e82691e3c61" : true,
+        "57d923514d7b7e82691e3c5e" : true,
+        "57d923304d7b7e82691e3c58" : true,
+        "57ed017f4d7b7e82691e3d8c" : true,
+        "57d928124d7b7e82691e3c65" : true,
+        "57d962364d7b7e82691e3cdd" : true,
+        "57ee3db44d7b7e82691e3df9" : true,
+        "57d928244d7b7e82691e3c67" : true,
+        "57d969184d7b7e82691e3ce8" : true,
+        "57ea93c14d7b7e82691e3d86" : true,
+        "57ee47744d7b7e82691e3e01" : true,
+        "57d928414d7b7e82691e3c6a" : true,
+        "57d970924d7b7e82691e3ced" : true,
+        "57ee52944d7b7e82691e3e0b" : true,
+        "57ea93864d7b7e82691e3d81" : true,
+        "57ed01ce4d7b7e82691e3d91" : true,
+        "57d928564d7b7e82691e3c6d" : true,
+        "57d970a44d7b7e82691e3cef" : true,
+        "57ee54fa4d7b7e82691e3e1c" : true,
+        "57d943314d7b7e82691e3c85" : true,
+        "57ea77794d7b7e82691e3d4a" : true,
+        "57ee57a64d7b7e82691e3e34" : true,
+        "57ed02484d7b7e82691e3d96" : true,
+        "57d943dd4d7b7e82691e3c91" : true,
+        "57ea79924d7b7e82691e3d52" : true,
+        "57ed02864d7b7e82691e3d9b" : true,
+        "57ee58834d7b7e82691e3e4c" : true,
+        "57d9453b4d7b7e82691e3ca0" : true,
+        "57ed033d4d7b7e82691e3da0" : true,
+        "57ea79aa4d7b7e82691e3d55" : true,
+        "57ee59df4d7b7e82691e3e65" : true,
+        "57ea79c04d7b7e82691e3d58" : true,
+        "57d944fc4d7b7e82691e3c9d" : true,
+        "57ed043c4d7b7e82691e3da7" : true,
+        "57ee5ab34d7b7e82691e3e68" : true,
+        "57ea79d74d7b7e82691e3d5b" : true,
+        "57d947404d7b7e82691e3cbe" : true,
+        "57ed05274d7b7e82691e3da9" : true,
+        "57ee5ac94d7b7e82691e3e6b" : true,
+        "57d94b6a4d7b7e82691e3cca" : true,
+        "57ed07c34d7b7e82691e3db8" : true,
+        "57ee5adc4d7b7e82691e3e6e" : true,
+        "57ed08c24d7b7e82691e3dc8" : true,
+        "57ed2b584d7b7e82691e3dd7" : true,
+        "57ed2c4c4d7b7e82691e3ddf" : true,
+        "57ed328a4d7b7e82691e3de5" : true
+    },
+    "components" : {
+        "57f7c9334d7b7e82691e3f0d" : true,
+        "57f7c8af4d7b7e82691e3f0c" : true,
+        "57d9283f4d7b7e82691e3c69" : true,
+        "57d928504d7b7e82691e3c6b" : true,
+        "57d929cf4d7b7e82691e3c71" : true,
+        "57d928224d7b7e82691e3c66" : true,
+        "57d9283d4d7b7e82691e3c68" : true,
+        "57d928544d7b7e82691e3c6c" : true,
+        "57d943514d7b7e82691e3c87" : true,
+        "57d943ee4d7b7e82691e3c93" : true,
+        "57d943ed4d7b7e82691e3c92" : true,
+        "57d945314d7b7e82691e3c9e" : true,
+        "57d945344d7b7e82691e3c9f" : true,
+        "57d9461a4d7b7e82691e3caa" : true,
+        "57d946224d7b7e82691e3cab" : true,
+        "57d9474f4d7b7e82691e3cbf" : true,
+        "57d947534d7b7e82691e3cc0" : true,
+        "57d94bb44d7b7e82691e3ccc" : true,
+        "57d94baf4d7b7e82691e3ccb" : true,
+        "57d942b14d7b7e82691e3c80" : true,
+        "57ed01aa4d7b7e82691e3d8d" : true,
+        "57ed01ad4d7b7e82691e3d8e" : true,
+        "57ed01e04d7b7e82691e3d92" : true,
+        "57ed01e34d7b7e82691e3d93" : true,
+        "57ed02554d7b7e82691e3d97" : true,
+        "57ed02594d7b7e82691e3d98" : true,
+        "57ed05304d7b7e82691e3daa" : true,
+        "57ed05344d7b7e82691e3dab" : true,
+        "57ed07de4d7b7e82691e3dba" : true,
+        "57ed08e34d7b7e82691e3dc9" : true,
+        "57ed08eb4d7b7e82691e3dca" : true,
+        "57ed2b854d7b7e82691e3dd8" : true,
+        "57ed309d4d7b7e82691e3de1" : true,
+        "57ed30984d7b7e82691e3de0" : true,
+        "57ee2cf84d7b7e82691e3df2" : true,
+        "57d942bd4d7b7e82691e3c82" : true,
+        "57ee47ab4d7b7e82691e3e02" : true,
+        "57ee55054d7b7e82691e3e1d" : true,
+        "57ee57cc4d7b7e82691e3e36" : true,
+        "57ee57c84d7b7e82691e3e35" : true,
+        "57ee588e4d7b7e82691e3e4d" : true,
+        "57ee5aab4d7b7e82691e3e67" : true,
+        "57ee5aa84d7b7e82691e3e66" : true,
+        "57ee5ac34d7b7e82691e3e69" : true,
+        "57ee5ad34d7b7e82691e3e6c" : true,
+        "57ee5ad54d7b7e82691e3e6d" : true,
+        "57d9434f4d7b7e82691e3c86" : true,
+        "57ea93cf4d7b7e82691e3d87" : true,
+        "57d929c34d7b7e82691e3c70" : true,
+        "57ed32e34d7b7e82691e3de7" : true,
+        "57d924ec4d7b7e82691e3c63" : true
+    },
+    "answers" : {
+        "57d943ed4d7b7e82691e3c92" : {
+            "_userAnswer" : [ 
+                true, 
+                false, 
+                false
+            ],
+            "_isCorrect" : true
+        },
+        "57d945344d7b7e82691e3c9f" : {
+            "_userAnswer" : [ 
+                true, 
+                false, 
+                false
+            ],
+            "_isCorrect" : true
+        },
+        "57d946224d7b7e82691e3cab" : {
+            "_userAnswer" : [ 
+                false, 
+                false, 
+                true
+            ],
+            "_isCorrect" : true
+        },
+        "57d947534d7b7e82691e3cc0" : {
+            "_userAnswer" : [ 
+                true, 
+                false, 
+                false
+            ],
+            "_isCorrect" : true
+        },
+        "57ed07de4d7b7e82691e3dba" : {
+            "_userAnswer" : [ 
+                false, 
+                false, 
+                true, 
+                false
+            ],
+            "_isCorrect" : false
+        },
+        "57ed08eb4d7b7e82691e3dca" : {
+            "_userAnswer" : [ 
+                false, 
+                true, 
+                false, 
+                false, 
+                false
+            ],
+            "_isCorrect" : false
+        },
+        "57ed2b854d7b7e82691e3dd8" : {
+            "_userAnswer" : [ 
+                false, 
+                true, 
+                false, 
+                false, 
+                false
+            ],
+            "_isCorrect" : false
+        },
+        "57ed309d4d7b7e82691e3de1" : {
+            "_userAnswer" : [ 
+                false, 
+                true, 
+                false, 
+                false
+            ],
+            "_isCorrect" : false
+        },
+        "57ee588e4d7b7e82691e3e4d" : {
+            "_userAnswer" : [ 
+                true, 
+                true, 
+                true
+            ],
+            "_isCorrect" : true
+        },
+        "57ee5aa84d7b7e82691e3e66" : {
+            "_userAnswer" : [ 
+                true, 
+                false, 
+                false, 
+                false
+            ],
+            "_isCorrect" : false
+        },
+        "57ee5ac34d7b7e82691e3e69" : {
+            "_userAnswer" : [ 
+                false, 
+                false, 
+                true
+            ],
+            "_isCorrect" : true
+        },
+        "57ee5ad34d7b7e82691e3e6c" : {
+            "_userAnswer" : [ 
+                true, 
+                false, 
+                false
+            ],
+            "_isCorrect" : true
+        }
+    },
+    "progress" : {
+        "57d923304d7b7e82691e3c56" : {
+            "courseID" : "http://tanzania.learndata.info/eLearning",
+            "theme" : "TZ",
+            "_isComplete" : true,
+            "progress" : NumberLong(100),
+            "answers" : {
+                "57d943ed4d7b7e82691e3c92" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : true
+                },
+                "_assessmentState" : "Passed",
+                "57d945344d7b7e82691e3c9f" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : true
+                },
+                "57d946224d7b7e82691e3cab" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        false, 
+                        true
+                    ],
+                    "_isCorrect" : true
+                },
+                "57d947534d7b7e82691e3cc0" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : true
+                }
+            },
+            "startTime" : "2016-12-09T14:52:43.347Z",
+            "endTime" : "2016-12-09T15:06:56.000Z"
+        },
+        "57d923514d7b7e82691e3c5c" : {
+            "courseID" : "http://tanzania.learndata.info/eLearning",
+            "theme" : "TZ",
+            "_isComplete" : false,
+            "progress" : NumberLong(81),
+            "startTime" : "2016-12-09T14:55:01.833Z",
+            "answers" : {
+                "57ed07de4d7b7e82691e3dba" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        false, 
+                        true, 
+                        false
+                    ],
+                    "_isCorrect" : false
+                },
+                "_assessmentState" : "Failed",
+                "57ed08eb4d7b7e82691e3dca" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        true, 
+                        false, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : false
+                },
+                "57ed2b854d7b7e82691e3dd8" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        true, 
+                        false, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : false
+                },
+                "57ed309d4d7b7e82691e3de1" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        true, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : false
+                }
+            }
+        },
+        "57d9235b4d7b7e82691e3c5f" : {
+            "courseID" : "http://tanzania.learndata.info/eLearning",
+            "theme" : "TZ",
+            "_isComplete" : false,
+            "progress" : NumberLong(66),
+            "sessionTime" : NumberLong(93),
+            "answers" : {
+                "57ee588e4d7b7e82691e3e4d" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        true, 
+                        true
+                    ],
+                    "_isCorrect" : true
+                },
+                "_assessmentState" : "Failed",
+                "57ee5aa84d7b7e82691e3e66" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        false, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : false
+                },
+                "57ee5ac34d7b7e82691e3e69" : {
+                    "_userAnswer" : [ 
+                        false, 
+                        false, 
+                        true
+                    ],
+                    "_isCorrect" : true
+                },
+                "57ee5ad34d7b7e82691e3e6c" : {
+                    "_userAnswer" : [ 
+                        true, 
+                        false, 
+                        false
+                    ],
+                    "_isCorrect" : true
+                }
+            },
+            "startTime" : "2016-12-09T15:05:24.850Z"
+        },
+        "57d9233c4d7b7e82691e3c59" : {
+            "courseID" : "http://tanzania.learndata.info/eLearning",
+            "theme" : "TZ",
+            "_isComplete" : false,
+            "progress" : NumberLong(9)
+        }
+    },
+    "user" : {
+        "id" : "9450972D-B6B0-470A-8E11-6567829E2A4A",
+        "lastSave" : "Fri Dec 09 2016 15:06:56 GMT+0000 (GMT)",
+        "email" : "dtest2@test.com"
+    },
+    "email_sent" : "false"
+}
