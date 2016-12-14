@@ -1,13 +1,12 @@
 define([
   'coreJS/adapt',
   './string-messageComposer',
-  './learnify-messageComposer',
   './localStorage-transportHandler',
   './ODILRSStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, learnifyMessageComposer, localStorageTransportHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, localStorageTransportHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -45,7 +44,6 @@ define([
       xapiManager.registration = this.sessionID;
   
       this.addMessageComposer(stringMessageComposer);
-      this.addMessageComposer(learnifyMessageComposer);
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
       this.addTransportHandler(localStorageTransportHandler);
