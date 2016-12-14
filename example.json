@@ -13,7 +13,7 @@
                 "_name": "defaultclientConsole",
                 "_isEnabled": false,
                 "_msgComposerName": "stringMessageComposer",
-                "_transport": { "_handlerName": "consoleLogTransportHandler",
+                "_transport": { "_handlerName": "localStorageTransportHandler",
                                 "_endpoint": "",
                                 "_auth": { }
                },

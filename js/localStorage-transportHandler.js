@@ -1,26 +1,25 @@
 define(function() {
 
-  var localStorageTransportHandler = _.extend({
+  var LocalStorageTransportHandler = _.extend({
 
-    _NAME: 'localStorageTransportHandler',    
-    
+    _NAME: 'localStorageTransportHandler',
+
     deliver: function(msg, channel) {
       console.log(msg);
     },
 
     saveState: function(state, channel, courseID) {
-      console.log('localStorageTransportHandler Saving state!!');
-      console.log(JSON.stringify(state));
-      localStorage.setItem(courseID + '_state',JSON.stringify(state));
+      var state_str = JSON.stringify(state);
+      console.log('localStorageTransportHandler saving state' + state_str );
+      localStorage.setItem('state_' + courseID , state_str);
     },
 
     loadState: function(channel, courseID) {
-	    console.log('loading state');
-	    console.log(JSON.stringify(localStorage.getItem(courseID + '_state')));
-    	return $.parseJSON(localStorage.getItem(courseID + '_state'));
+        console.log('localStorageTransportHandler loading state ' + 'state_' + courseID);
+        return $.parseJSON(localStorage.getItem( 'state_' + courseID));
     }
 
   }, Backbone.Events);
 
-  return (localStorageTransportHandler);
+  return (LocalStorageTransportHandler);
 });
