@@ -1,3 +1,5 @@
+// Careful... setting global variable because the ODI setup needs it...
+var theme="ODI";
 define([
   'coreJS/adapt',
   './string-messageComposer',
@@ -11,14 +13,16 @@ define([
     var TrackingHub = _.extend({
 
     _state: null,
+    // _state: { 'base': {}},
     _sessionID: null,
     _config: null,
     _channels: [],
+    // 1 lines moved from here to ODILRSStorageTH
     _data: {},
     _message_composers: {},
     _transport_handlers: {},
     _xapiManager: xapiManager,
-     
+
     // Basic, default tracked messages
     _TRACKED_MSGS: {
        Adapt: [
@@ -33,33 +37,38 @@ define([
        ],
        blocks: ['change:_isComplete'],
        course: ['change:_isComplete'],
-       contentObjects: ['change:_isComplete'],
-       contentObjects: ['change:_isInteractionComplete'],
-       contentObjects: ['change:_isVisible'],
-       components: ['change:_isInteractionComplete']
+       components: ['change:_isInteractionComplete'],
+       // I think that these additions by @davetaz should remain in the core trackingHub
+       contentObjects: ['change:_isComplete',
+                        'change:_isInteractionComplete',
+                        'change:_isVisible'
+       ]
     },
-  
+
     initialize: function() {
       this.sessionID = ADL.ruuid();
       xapiManager.registration = this.sessionID;
-  
+
       this.addMessageComposer(stringMessageComposer);
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
       this.addTransportHandler(localStorageTransportHandler);
+      // the ODILRSStorageTH was added by @davetaz. This will not be here.
       this.addTransportHandler(ODILRSStorageTransportHandler);
-  
+
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
 
-      this._data.currentPage = "";
-      var local = this;
-      local.interval = setInterval(function() {local.focus_check();},3000);
+      // 3 lines moved from here to ODILRSStorageTH
+      //this._data.currentPage = "";
+      //var local = this;
+      //local.interval = setInterval(function() {local.focus_check();},3000);
     },
-  
+
     onConfigLoaded: function() {
+      // just add the defined channels to trackingHub
       var isXapiChannel;
-  
+
       if (!this.checkConfig())
         return;
       xapiManager.courseID = this._config._courseID;
@@ -77,23 +86,42 @@ define([
 
     onDataReady: function() {
       this.setupInitialEventListeners();
+      // TODO: loadState will be executed AFTER the LaunchSequence, controlled by _activeLaunch in config
       this.loadState();
-      // Important: state change listeners smust be loaded AFTER loading the state
-      //this.listenTo(Adapt.contentObjects, 'change:_isVisible', this.sessionTimer);
-      this.listenTo(Adapt, 'router:page', this.sessionTimer);
-      this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
-      this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
-      this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
-//      this.listenTo(Adapt, 'assessment:complete', this.updateAssessmentDetails);
+      // Important: state change listeners must be loaded AFTER loading the state
+
+      // 1 line moved to ODILRSStorageHandler
+      // this.listenTo(Adapt, 'router:page', this.sessionTimer);
+      // THIS IS WRONG... EVENT listeners have already been added!!
+      // THE odilrs will REACT to these changes, and all they do is SAVE STATE!
+      // this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
+      // this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
+      // this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
+
+      // NO WAY this can be here... in the main 'trackinghub' he's listenting for an event triggered by his custom THEME!!
+      // It is HIS OWN extension the one who has to listen... THIS IS An example of a  CUSTOM EVENT!
       this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
     },
 
+    /*
+     // function moved to ODILRSStorageHandler.
     sessionTimer: function(target) {
-        pageID = target.get('_trackingHub')._pageID || target.get('_id') || null;
+        // ( @jpablo128 edit)
+        // Trying to do:
+        //    pageID = target.get('_trackingHub')._pageID || target.get('_id');
+        // directly causes errors, because targtet migt not have the attribute called '_trackinghub' (so it's null), at least sometimes
+        // So I use this equivalent safest alternative:
+        if (target.get('_trackingHub')) {
+          var pageID = target.get('_trackingHub')._pageID;
+        } else {
+            var pageID = target.get('_id');
+        }
         this._data.currentPage = pageID;
         this.window_focused();
         Adapt.trigger('trackingHub:getUserDetails',this._data.user || {});
     },
+
+    */
 
     updateUserDetails: function(user) {
       localuser = this._data.user || {};
@@ -102,26 +130,21 @@ define([
       }
       this._data.user = localuser;
     },
-/*
-    updateAssessmentDetails: function(assessment) {
-      allassessments = this._data.assessments || {};
-      local = allassessments[this._data.currentPage] || {};
-      for(var prop in assessment) {
-        local[prop] = assessment[prop];
-      }
-      allassessments[this._data.currentPage] = local;
-      this._data.assessments = allassessments;
-      this.saveState();
-      console.log(allassessments);
-    },
-  */  
+
     onStateChanged: function(target) {
+      // well, I think that stateChanged should just call saveState, no matter what.
+      // and besides, it was VERY limiting... it was only considering _isComplete...
+      this.saveState();
+      // BUT.... onStateChanged ... it should give the opportunity to OTHER TransportHandlers to do stuff 
+      // OR... better, I think, OTHER THs should be able to notify when state has changed... because their concept of STATE is different.
+/*
       var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
       if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
         this.saveState();
       } else {
-	      this.saveState();
+          this.saveState();
       }
+*/
     },
   
     checkConfig: function() {
@@ -140,13 +163,26 @@ define([
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
       channel._xapiData = channel._xapiData || {};
-  
+ 
+      /* original condition: msgComposer was mandatory
       if ((_.isArray(channel._ignoreEvents)) && (_.isObject(channel._xapiData)) &&
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
           !_.isEmpty(channel._name) ) &&
         (channel.has('_msgComposerName') && _.isString(channel._msgComposerName) &&
           !_.isEmpty(channel._msgComposerName) ) &&
+        (channel.has('_transport') ) &&
+        (channel._transport.hasOwnProperty('_handlerName') &&
+          _.isString(channel._transport._handlerName) &&
+         !_.isEmpty(channel._transport._handlerName) ) ) {
+        return  true;
+      }
+      */
+      // new condition: _msgComposerName is optional
+      if ((_.isArray(channel._ignoreEvents)) && (_.isObject(channel._xapiData)) &&
+        (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
+        (channel.has('_name') && _.isString(channel._name) &&
+          !_.isEmpty(channel._name) ) &&
         (channel.has('_transport') ) &&
         (channel._transport.hasOwnProperty('_handlerName') &&
           _.isString(channel._transport._handlerName) &&
@@ -176,6 +212,7 @@ define([
         case 'course': obj = Adapt.course; break;
         case 'blocks': obj = Adapt.blocks; break;
         case 'components': obj = Adapt.components; break;
+        case 'contentobjects': obj = Adapt.contentObjects; break;
       };
       return obj;
     },
@@ -205,26 +242,43 @@ define([
   
       sourceObj = this.getObjFromEventSourceName(eventSourceName);
       this.listenTo(sourceObj, eventName, function (args) {
+        // TODO: dispatchTrackedMsg should be processTrackedMsg
         this.dispatchTrackedMsg(args, eventSourceName, eventName);
       }, this);
     },
   
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
+      // OK, for tracked events, I'm just calling the 'deliver' function  
+      // BUT IT'S NOT JUST DELIVER! I want to allow the TransportHandlers TO DO whatever they want
+      // THEY might want to COMPOSE a message... or they might just want to update its internal state...
+      // that's mostly what ODILRSStorageTH is doing...
+      // I think that, instead of 'deliver' I should call 'dealWith', or 'processEvent' within the TH,
+      // and let IT decide if it wants to compose a message and deliver it, OR if it just wants to 
+      // update its state... and then call 'stateChanged'
+      // IN OTHER WORDS
+      // THE WAY I did it... is VERY LIMITING 
+      // THIS STRENGTHENS MY THEORY: The STATE representation IS AFFECTED, or changed, by the EVENTS that happen
+      // SO if every TransportHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
       var composer;
       var thandler;
       var message;
       var transportConfig;
-  
+
       _.each(this._channels, function (channel) {
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
         if ( !isEventIgnored ) {
-          composer = this.getComposerFromComposerName(channel._msgComposerName);
-          thandler = this.getTransportHandlerFromTransportHandlerName(
-            channel._transport._handlerName);
-          message = composer.compose(eventSourceName, eventName, args);
-          thandler.deliver(message, channel);
+          // commented out all lines about composing and 'deliver' . He's not really using them.
+          // composer = this.getComposerFromComposerName(channel._msgComposerName);
+          thandler = this.getTransportHandlerFromTransportHandlerName(channel._transport._handlerName);
+          //message = composer.compose(eventSourceName, eventName, args);
+          //thandler.deliver(message, channel);
+          // @jpablo128 1 line added
+          thandler.processEvent(channel, eventSourceName, eventName, args);
         }
       }, this);
+      // THIS IS THE MOMENT where ALL channels have processed (or not) the event, they've updated their representation of the state, 
+      // and when trackinghub  can SAVE the state! (although the specific save is performed by a concrete channel).
+      // HERE CALL this.saveState(x, y, z)  THAT FUNCTION will implement the 'only really save once every 5 calls' or whatever
     },
   
     getComposerFromComposerName: function (cname) {
@@ -244,8 +298,13 @@ define([
   
     addTransportHandler: function (th) {
       this._transport_handlers[th['_NAME']] = th;
+      // @jpablo128 addition: call the THandler's  'initialize' function if it exists
+      th._THUB = this;
+      if (th.initialize) {
+          th.initialize();
+      }
     },
-      
+/*      
     updateState: function() {
       this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
       courseID = this._config._courseID;
@@ -257,7 +316,16 @@ define([
       //$.parseJSON(localStorage.getItem("user")) || {};
       pageID = this._data.currentPage;
       _.each(Adapt.contentObjects.models, function(contentObject) {
-        contentPageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
+        // ( @jpablo128 edit)
+        // Trying to do:
+        //    contentPageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
+        // directly causes errors, because contentObject has no attribute called '_trackinghub' (so it's null), at least sometimes
+        // So I use this equivalent safest alternative:
+        if (contentObject.get('_trackingHub')) {
+          var contentPageID = contentObject.get('_trackingHub')._pageID;
+        } else {
+            var contentPageID = contentObject.get('_id');
+        }
         // IDIOT DAVE THIS IS EVERY PAGE SO NOT JUST THE ONE ON THE SCREEN!!! 
         //localID = contentObject.getParent()
         localProgress = 0;
@@ -304,7 +372,17 @@ define([
         this._state.blocks[block.get('_id')] = block.get('_isComplete');
       }, this);
       _.each(Adapt.components.models, function(component) {
-        contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
+        // ( @jpablo128 edit)
+        // Trying to do:
+        //    contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
+        // directly causes errors, because the object referenced has no attribute called '_trackinghub' (so it's null), at least sometimes
+        // So I use this equivalent safest alternative:
+        var parentChain = component.getParent().getParent().getParent();
+        if (parentChain.get('_trackingHub')) {
+          var contentPageID = parentChain.get('_trackingHub')._pageID;
+        } else {
+          var contentPageID = parentChain.get('_id');
+        }
 
         this._state.components[component.get('_id')]=component.get('_isComplete');
         if (contentPageID && component.get('_userAnswer')) {
@@ -329,16 +407,16 @@ define([
         }
       }, this);
     },
-  
+*/
     saveState: function() {
-      this.updateState();
+      //this.updateState();
       _.each(this._channels, function(channel) {
         if (channel._saveStateIsEnabled) {
           this._transport_handlers[channel._transport._handlerName].saveState(this._state, channel, this._config._courseID);
         }
       }, this);
     }, 
-  
+
     loadState: function() {
       var stateSourceChnl = null;
       var handlerName = null;
@@ -354,6 +432,7 @@ define([
         state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
       }
       if (state) {
+          console.log('PAB prog in trackinghub 1');
         this._data.progress = state.progress;
         this._data.user = state.user;
         //localStorage.setItem('progress',JSON.stringify(state.progress));
@@ -377,70 +456,16 @@ define([
           }
         });
       };
-      this.updateState();
+      //this.updateState();
     },
 
-    focus_check: function() {
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      last_user_interaction = undefined;   
-      if (pageTimes.last_user_interaction) {
-          last_user_interaction = new Date(pageTimes.last_user_interaction)
-      }
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time)
-      }
-      if (last_user_interaction != undefined) {
-        var curr_time = new Date();
-        if((curr_time.getTime() - last_user_interaction.getTime()) > (20 * 1000) && start_focus_time != undefined) {
-            this.window_unfocused();
-        }
-      }
+    updateStructureFromState: function(state) {
     },
 
-    window_focused: function() {
-      pageID = this._data.currentPage;
-      if (pageID == null || !pageID) {
-        return;
-      }
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      if (!pageTimes.start_focus_time) {
-        pageTimes.start_focus_time = new Date();
-      }
-      pageTimes.last_user_interaction = new Date();
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
+    getValidFunctionName: function (eventSourceName, eventName) {
+      return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
     },
 
-    window_unfocused: function() {
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time);
-      }
-      total_focus_time = pageTimes.sessionTime || 0;
-      if (start_focus_time != undefined) {
-        var stop_focus_time = new Date();
-        var to_add = stop_focus_time.getTime() - start_focus_time.getTime();
-        to_add = Math.round(to_add / 1000);
-        var total = total_focus_time + to_add;
-        pageTimes.sessionTime = total;
-        pageTimes.start_focus_time = stop_focus_time;
-      }
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
-    },
-  
     onDocumentVisibilityChange: function() {
       // Use visibilitystate instead of unload or beforeunload. It's more reliable.
       // See:
