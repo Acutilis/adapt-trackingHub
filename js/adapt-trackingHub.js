@@ -85,9 +85,14 @@ define([
     },
 
     onDataReady: function() {
-      this.setupInitialEventListeners();
       // TODO: loadState will be executed AFTER the LaunchSequence, controlled by _activeLaunch in config
-      this.loadState();
+      this.loadState();  // this should be startUpState or prepareState
+      // I SET UP the event listeners AFTER the state is loaded, otherwise, the load state will change things in the structure
+      // and the events will be fired, and the state saved again...
+      // NO NO NO this does'nt work!! the loadState is going to be most likely, async, and might end AFTER setupInitialEventListeners has run
+      // SO the setupInitialEventListenes SHOULD be called after the prepareState has issued a 'stateReady' event!!!
+      // onStateReady -> setupInitialEventListeners.
+      this.setupInitialEventListeners();
       // Important: state change listeners must be loaded AFTER loading the state
 
       // 1 line moved to ODILRSStorageHandler
@@ -100,7 +105,7 @@ define([
 
       // NO WAY this can be here... in the main 'trackinghub' he's listenting for an event triggered by his custom THEME!!
       // It is HIS OWN extension the one who has to listen... THIS IS An example of a  CUSTOM EVENT!
-      this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
+      // this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
     },
 
     /*
@@ -109,7 +114,7 @@ define([
         // ( @jpablo128 edit)
         // Trying to do:
         //    pageID = target.get('_trackingHub')._pageID || target.get('_id');
-        // directly causes errors, because targtet migt not have the attribute called '_trackinghub' (so it's null), at least sometimes
+        // directly causes errors, because target migt not have the attribute called '_trackinghub' (so it's null), at least sometimes
         // So I use this equivalent safest alternative:
         if (target.get('_trackingHub')) {
           var pageID = target.get('_trackingHub')._pageID;
@@ -123,6 +128,8 @@ define([
 
     */
 
+    /*
+    // function moved to ODILrs
     updateUserDetails: function(user) {
       localuser = this._data.user || {};
       for(var prop in user) {
@@ -130,6 +137,7 @@ define([
       }
       this._data.user = localuser;
     },
+    */
 
     onStateChanged: function(target) {
       // well, I think that stateChanged should just call saveState, no matter what.
@@ -279,6 +287,7 @@ define([
       // THIS IS THE MOMENT where ALL channels have processed (or not) the event, they've updated their representation of the state, 
       // and when trackinghub  can SAVE the state! (although the specific save is performed by a concrete channel).
       // HERE CALL this.saveState(x, y, z)  THAT FUNCTION will implement the 'only really save once every 5 calls' or whatever
+      this.saveState();
     },
   
     getComposerFromComposerName: function (cname) {
@@ -313,7 +322,6 @@ define([
       // THIS DOESN'T WORK
       //this._state._isComplete = Adapt.course.get('_isComplete');
       this._state.user = this._data.user || {};
-      //$.parseJSON(localStorage.getItem("user")) || {};
       pageID = this._data.currentPage;
       _.each(Adapt.contentObjects.models, function(contentObject) {
         // ( @jpablo128 edit)
@@ -330,7 +338,6 @@ define([
         //localID = contentObject.getParent()
         localProgress = 0;
         progressObject = this._data.progress || {};
-        //progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
         pageProgress = progressObject[contentPageID] || {};
         if (contentPageID) {
           this._state.progress[contentPageID] = {};
@@ -338,7 +345,6 @@ define([
 
         pageTimes = this._data.sessionTimes || {};
         thisPage = pageTimes[contentPageID] || {};
-        //pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
         
         sessionTime = thisPage.sessionTime || undefined;
         pageProgress.sessionTime = sessionTime;
@@ -409,6 +415,7 @@ define([
     },
 */
     saveState: function() {
+       // HERE implement reading from config _saveOnceIn or something like that... so it only really saves once every 5 times or whatever.
       //this.updateState();
       _.each(this._channels, function(channel) {
         if (channel._saveStateIsEnabled) {
@@ -421,7 +428,10 @@ define([
       var stateSourceChnl = null;
       var handlerName = null;
       var state = null;
-  
+ 
+      // THERE should ONLY Be 1 stateSource channel... so, whenever we find the 1st one... it should stop searching
+      // maybe use another technicque.
+      // right now, is getting teh last one (the last one in the config)
       _.each(this._channels, function(channel) {
         if (channel._isStateSource) {
           stateSourceChnl = channel;
@@ -432,11 +442,28 @@ define([
         state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
       }
       if (state) {
-          console.log('PAB prog in trackinghub 1');
+          this._state = state;
+          this.updateStructureFromState(state);
+      } else {
+          this._state = this.generateInitialState();
+      }
+
+    },
+
+    generateInitialState: function() {
+        // LET'S MAKE 1 state now, I'll separate later!
+        // OK, this DOESN'T generate an 'empty object'...e.g. { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
+        // it should generate the complete object... that is, generateStateFromStructure ... generates ITS OWN representation of the state, from Adapt objects.
+
+    },
+
+    generateInitialChannelStates: function() {
+    },
+
+    updateStructureFromState: function(state) {
+        console.log('PAB prog in trackinghub 1');
         this._data.progress = state.progress;
         this._data.user = state.user;
-        //localStorage.setItem('progress',JSON.stringify(state.progress));
-        //localStorage.setItem('user',JSON.stringify(state.user));
         _.each(Adapt.blocks.models, function(targetBlock) {
           targetBlock.set('_isComplete', state.blocks[targetBlock.get('_id')]);
         });
@@ -451,15 +478,9 @@ define([
               targetComponent.set('_isSubmitted', true);
               targetComponent.set('_isInteractionComplete', true);
             }
-            //targetComponent.restoreUserAnswers();
-            //targetComponent.updateButtons();
           }
         });
-      };
       //this.updateState();
-    },
-
-    updateStructureFromState: function(state) {
     },
 
     getValidFunctionName: function (eventSourceName, eventName) {
