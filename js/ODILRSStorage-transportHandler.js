@@ -8,11 +8,9 @@ define([
     _NAME: 'ODILRSStorageTransportHandler',
     _OWNSTATENAME: 'odilrs',
     _OWNSTATE: {},
-    _URL: "",
-    // 1 line moved from th to here
+    _URL: '',
     _data: {},
     _currentlyShownPage: null,   // added by pab
-
 
     initialize: function() {
       console.log('Initializing ' + this._NAME);
@@ -33,28 +31,14 @@ define([
       //   var message = composer.compose(eventSourceName, eventName, args);
       // here just call the 'specific' processor
       var ev = eventSourceName + ':' + eventName;
-      // The EVENTS this handler cares about are:
-      //this.listenTo(Adapt, 'router:page', this.sessionTimer);
-      //
-      //this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged); // this NEVER fires!
-      // this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
-      //this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
-
       funcName = this._THUB.getValidFunctionName(eventSourceName, eventName);
-      //console.log('funcName = ' + funcName);
+      // console.log('funcName = ' + funcName);
+      // We only need to write event handling functions for the events that we care about
+      // see "Specific event processing functions" section below
       if (this.hasOwnProperty(funcName)) {
         this[funcName](args);
       }
       // the fact that there's no method to handle a specific event is NOT an error, it's simply that this TransportHandler doesn't care  about that event.
-    },
-
-    deliver: function(msg, channel) {
-      // THERE'S NO SUCH THING as 'deliver'
-      //console.log(msg);
-    },
-
-    onStateChanged: function(target) {
-      console.log('onStateChanged in ODILRSStorage...');
     },
 
     updateUserDetails: function(user) {
@@ -65,34 +49,10 @@ define([
       this._data.user = localuser;
     },
 
-    // jpablo128 note: The ODI LRS api is here: https://github.com/theodi/LRS/tree/master/web/api/v2
-    updateLRS: function(state) {
-      // jpablo128 Note:
-      // a custom Transport Handler should not trigger messages 'in the name of trackingHub' ...
-      // If a custom TH needs to trigger messages so 
-      // Adapt.trigger('odilrs:staDILRSStorage:saving')
-      Adapt.trigger('trackingHub:saving');
-      if (!state.user.id || state.user.id == null || state.user.id == "null") return;
-      send = {};
-      send.data = JSON.stringify(state);
-      $.ajax({
-        type: "POST",
-        url: this._URL + "store.php",         
-        data: send,
-        success: function(ret) {
-          Adapt.trigger('trackingHub:success');
-          //if (flag) { setSaveClass('cloud_success'); }
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-          console.log("LRS update failed " + thrownError);
-          Adapt.trigger('trackingHub:failed');
-          //if (flag) { setSaveClass('cloud_failed'); }
-        }
-      });
-    },
-
     getUserID: function() {
       // not sure that making a delayed call on fail is the right thing to do...
+      var channel = this._THUB._launchManagerChannel; // yes, we're using specific functionality from the launch manager channel.
+      this._URL = channel._transport._endpoint;
       $.get( this._URL + "create_id.php", function( data ) {
         localStorage.setItem("UserID",data);
       })
@@ -128,21 +88,29 @@ define([
     /*******************************************/
 
     startLaunchSequence: function() {
-        //there's really no launch sequence in this transportHandler
-        // YES YES YES  
-        // LAUNCH sequence, if there's no userID IN LOcal storage,  get one, and initialize state for it!
-        var loadID = localStorage.getItem('UserID');
-        if (! loadID) {
-            var newUserID = this.getUserID();
-            localStorage.setItem('UserID', newUserID);
-            //state = this.initializeState(newUserID);
-        }
-        console.log('odilrs: launch sequence finished');
-        this.trigger('launchSequenceFinished');
+      // In this TransportHandler the only thing to do in the launch sequence is to get the userID from localStorage
+      // and if there's no userID, get one from the server.
+      // is there a userID specified in the query string? if so, THAT is the user whose state we must loada
+      var userID = null;
+      var queryUserID = this.queryString().id;
+      if (queryUserID) {
+        userID = queryUserID;
+      } else {
+        // try to use a locally saved userID to load the data.
+        userID = localStorage.getItem('UserID');
+      }
+      if (!userID) {
+          var userID = this.getUserID(); 
+          localStorage.setItem('UserID', userID);
+//          state = this.initializeState(newUserID);
+ //         console.log('odilrs: state ready');
+//          this.trigger('stateReady', state);
+      }
+      console.log('odilrs: launch sequence finished');
+      this.trigger('launchSequenceFinished');
     },
 
     /*******  END LAUNCH SEQUENCE FUNCTIONS *******/
-
 
 
 
@@ -223,17 +191,16 @@ define([
       this._URL = channel._transport._endpoint;
 
       //this._THUB._state[this._OWNSTATENAME].user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
-      // Yes THIS SHOULD be using _OWNSTATENAME BUT I'M STILL NO MANAGING IT... JUST MANAGING THE WHOLE STATE FOR NOW.
+      // Yes THIS SHOULD be using _OWNSTATENAME BUT I'M STILL NOT MANAGING IT... JUST MANAGING THE WHOLE STATE FOR NOW.
       //
       this._THUB._state.user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
-      // I DON'T WANT TO SAVE IT TO 2 PLACES not to localStorage!
-      // localStorage.setItem(courseID,JSON.stringify(state));
+      // Unlike the originial odilrsstorage-transportHandler, I'm not saving to localStorage, only to the backend server.
       //
-      // jpablo128 Note:
-      // a custom Transport Handler should not trigger messages 'in the name of trackingHub' ...
-      // If a custom TH needs to trigger messages so 
+      // A custom Transport Handler should not trigger messages 'in the name of trackingHub' ...
+      // If a custom TH needs to trigger messages on Adapt, namespace the event with a custom namespace 
       // Adapt.trigger('odilrs:savingState')
       // Adapt.trigger('trackingHub:saving'); // LOOK AT THE THEME... IT'S LISTENING TO THIS TO UPDATE SOMETHING
+
       var objToSend = {};
       objToSend.data = JSON.stringify(this._THUB._state); // we save the WHOLE state
       $.ajax({
@@ -246,41 +213,21 @@ define([
     },
 
     onStateSaveSuccess: function(ev) {
-       Adapt.trigger('odilrs:saveStateSucceded');
+      // review the TZ theme, I think it listens for events from here.
+      Adapt.trigger('odilrs:saveStateSucceded');
     },
 
     onStateSaveError: function(xhr, ajaxOptions, thrownError) {
-       console.log("State save failed: " + thrownError);
-       // Adapt.trigger('trackingHub:failed'); // Modify the theme because it's listening for this event
-       Adapt.trigger('odilrs:saveStateFailed');
+      console.log("State save failed: " + thrownError);
+      // Adapt.trigger('trackingHub:failed'); // Modify the theme because it's listening for this event
+      Adapt.trigger('odilrs:saveStateFailed');
     },
 
-    // ----
     loadState: function(channel, courseID) {
-      // The process is: try to load a state representation for a specific user, if there's none, we return the empty state
-      // THE DETERMINATION of user is done in the LAUNCH SEQUENCE
-
       this._URL = channel._transport._endpoint;
-      var loadID = null;
+      // at this point, we can be sure that there's a userID in localstorage, because that's what the launch sequence did.
+      var loadID = localStorage.getItem('UserID');
       var state = null;
-      // is there a userID specified in the query string? if so, THAT is the user whose state we must load
-      var queryUserID = this.queryString().id;
-      if (queryUserID) {
-        loadID = queryUserID;
-      } else {
-        // try to use a locally saved userID to load the data.
-        loadID = localStorage.getItem('UserID');
-        //state = $.parseJSON(localStorage.getItem(courseID ));
-        //localUserID = state.user.id;
-        //loadID = localUserID;
-      }
-      if (!loadID) {
-          var newUserID = this.getUserID(); 
-          state = this.initializeState(newUserID);
-          console.log('odilrs: state ready');
-          this.trigger('stateReady', state);
-      }
-
       var loadUrl = this._URL + 'load.php?id=' + loadID;
       $.ajax({
           url: loadUrl,
@@ -305,7 +252,6 @@ define([
        console.log('odilrs: state ready');
        //this.trigger('stateReady', state);
     },
-
 
     applyStateToStructure: function() {
         if (! this._THUB._state) return;
@@ -349,209 +295,6 @@ define([
     },
 
     /*******  END STATE MANAGEMENT FUNCTIONS ********/
-
-
-    /* Functions moved from manipulated trackinghub  to here (odilrsstoragehandler) */
-
-    sessionTimer: function(target) {
-        // ( @jpablo128 edit)
-        // Trying to do:
-        //    pageID = target.get('_trackingHub')._pageID || target.get('_id');
-        // directly causes errors, because targtet migt not have the attribute called '_trackinghub' (so it's null), at least sometimes
-        // So I use this equivalent safest alternative:
-        if (target.get('_trackingHub')) {
-          var pageID = target.get('_trackingHub')._pageID;
-        } else {
-            var pageID = target.get('_id');
-        }
-        this._data.currentPage = pageID;
-        this.window_focused();
-        Adapt.trigger('trackingHub:getUserDetails',this._data.user || {});
-    },
-
-    focus_check: function() {
-      // THIS IS BEING EXECUTED EVERY 3 SECONDS
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      last_user_interaction = undefined;   
-      if (pageTimes.last_user_interaction) {
-          last_user_interaction = new Date(pageTimes.last_user_interaction)
-      }
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time)
-      }
-      if (last_user_interaction != undefined) {
-        var curr_time = new Date();
-        // I THINK THAT HERE HE'S CHECKING IF THERE HASNT' BEEN INTERACION FOR 20 SECS, RUNS window_unfocused
-        if((curr_time.getTime() - last_user_interaction.getTime()) > (20 * 1000) && start_focus_time != undefined) {
-            this.window_unfocused();
-        }
-      }
-    },
-
-    // What he's keeping in this._data:
-    //   currentPage
-    //   user
-    //   sessionTimes (by pageID)
-    //      there's a sessionTimes for each page and
-    //      sessionTimes[pageID] contains:
-    //          start_focus_time
-    //          stop_focus_time
-    //          session_time    (total)
-    //
-    //   progress
-
-    window_focused: function() {
-      pageID = this._data.currentPage;
-      if (pageID == null || !pageID) {
-        return;
-      }
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      if (!pageTimes.start_focus_time) {
-        pageTimes.start_focus_time = new Date();
-      }
-      pageTimes.last_user_interaction = new Date();
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
-    },
-
-    window_unfocused: function() {
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time);
-      }
-      total_focus_time = pageTimes.sessionTime || 0;
-      if (start_focus_time != undefined) {
-        var stop_focus_time = new Date();
-        var to_add = stop_focus_time.getTime() - start_focus_time.getTime();
-        to_add = Math.round(to_add / 1000);
-        var total = total_focus_time + to_add;
-        pageTimes.sessionTime = total;
-        pageTimes.start_focus_time = stop_focus_time;
-      }
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
-    },
-
-
-    updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
-      var courseID = this._THUB._config._courseID;
-      lang = Adapt.config.get('_activeLanguage');
-      this.window_unfocused();
-      // THIS DOESN'T WORK
-      //this._state._isComplete = Adapt.course.get('_isComplete');
-      this._state.user = this._data.user || {};
-      //$.parseJSON(localStorage.getItem("user")) || {};
-      pageID = this._data.currentPage;
-      _.each(Adapt.contentObjects.models, function(contentObject) {
-        // ( @jpablo128 edit)
-        // Trying to do:
-        //    contentPageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
-        // directly causes errors, because contentObject has no attribute called '_trackinghub' (so it's null), at least sometimes
-        // So I use this equivalent safest alternative:
-        if (contentObject.get('_trackingHub')) {
-          var contentPageID = contentObject.get('_trackingHub')._pageID;
-        } else {
-            var contentPageID = contentObject.get('_id');
-        }
-        // IDIOT DAVE THIS IS EVERY PAGE SO NOT JUST THE ONE ON THE SCREEN!!! 
-        //localID = contentObject.getParent()
-        localProgress = 0;
-        progressObject = this._data.progress || {};
-        //progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
-        pageProgress = progressObject[contentPageID] || {};
-        if (contentPageID) {
-          this._state.progress[contentPageID] = {};
-        }
-
-        pageTimes = this._data.sessionTimes || {};
-        thisPage = pageTimes[contentPageID] || {};
-        //pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-        
-        sessionTime = thisPage.sessionTime || undefined;
-        pageProgress.sessionTime = sessionTime;
-        pageProgress.courseID = courseID;
-        pageProgress.lang = lang;
-        pageProgress.theme = theme;
-        pageProgress._isComplete = false;
-        if (contentObject.get('completedChildrenAsPercentage')) {
-          localProgress = contentObject.get('completedChildrenAsPercentage');
-          if (localProgress > 10 && !pageProgress.startTime) {
-            pageProgress.startTime = new Date();
-            console.log('PAB HERE 1');
-            pageProgress.progress = localProgress;
-          }
-          if (localProgress > 99) {
-            pageProgress.endTime = new Date();
-            console.log('PAB HERE 2');
-            pageProgress.progress = 100;
-            pageProgress._isComplete = true;
-          }
-          console.log('PAB HERE 3');
-          pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
-          if (contentPageID) {
-            this._data.progress[contentPageID] = pageProgress;
-          }
-
-        }
-        if (contentPageID) {
-          this._state.progress[contentPageID] = pageProgress;
-        }
-      }, this);
-      _.each(Adapt.blocks.models, function(block) {
-        this._state.blocks[block.get('_id')] = block.get('_isComplete');
-      }, this);
-      _.each(Adapt.components.models, function(component) {
-        // ( @jpablo128 edit)
-        // Trying to do:
-        //    contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
-        // directly causes errors, because the object referenced has no attribute called '_trackinghub' (so it's null), at least sometimes
-        // So I use this equivalent safest alternative:
-        var parentChain = component.getParent().getParent().getParent();
-        if (parentChain.get('_trackingHub')) {
-          var contentPageID = parentChain.get('_trackingHub')._pageID;
-        } else {
-          var contentPageID = parentChain.get('_id');
-        }
-
-        this._state.components[component.get('_id')]=component.get('_isComplete');
-        if (contentPageID && component.get('_userAnswer')) {
-          this._state.answers[component.get('_id')] = {};
-          this._state.answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
-          this._state.answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
-          this._state.progress[contentPageID].answers = this._state.progress[contentPageID].answers || {};
-          this._state.progress[contentPageID].answers[component.get('_id')] = {};
-          this._state.progress[contentPageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
-          this._state.progress[contentPageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
-          if (!this._state.progress[contentPageID].answers._assessmentState) {
-            this._state.progress[contentPageID].answers._assessmentState = "Not Attempted";
-          }
-          if (component.get('_isCorrect') == false) {
-            this._state.progress[contentPageID].answers._assessmentState = "Failed";  
-          } else if (component.get('_isCorrect') == true && this._state.progress[contentPageID].answers._assessmentState != "Failed") {
-            this._state.progress[contentPageID].answers._assessmentState = "Passed";
-          }
-          if (component.get('_userAnswer').length < 1) {
-            this._state.progress[contentPageID].answers._assessmentState = "Incomplete";  
-          }
-        }
-      }, this);
-    },
-
-
-    /* END Functions moved from manipulated trackinghub  to here (odilrsstoragehandler) */
 
     periodicSessionTimeUpdate: function() {
       // This function gets called periodically (every 3 seconds) so we can update the cumulative
@@ -605,7 +348,6 @@ define([
       //    endTime: time when the page was marked Complete
       //    sessionTime: time the user spent on that page
       //
-      //  this.sessionTimer(args);
 
       console.log('Adapt_router_page in ODILRSStorage');
       this.updateCurrentlyShownPageData();
@@ -621,7 +363,7 @@ define([
       args.set('odilrs_startFocusTime', new Date());
       this._currentlyShownPage = args; // update our varible to refer to this new page the user has displayed
 
-      // ??? REVIEW this
+      // TODO: ??? REVIEW this
       Adapt.trigger('trackingHub:getUserDetails',this._data.user || {});
     },
 
