@@ -6,7 +6,7 @@ define([
 
     _THUB: null,  // this will be set to the trackingHub module once this transportHandler is added.
     _NAME: 'ODILRSStorageTransportHandler',
-    _OWNSTATENAME: 'odilrs',
+    _OWNSTATEKEY: 'odilrs',
     _OWNSTATE: {},
     _URL: '',
     _data: {},
@@ -17,9 +17,10 @@ define([
       // this._URL = channel._transport._endpoint;
       // 3 lines moved from th to here
       _.bindAll(this, 'onStateLoadSuccess', 'onStateLoadError', 'onStateSaveSuccess', 'onStateSaveError');
+      this.listenToOnce(this._THUB, 'stateReady', this.onStateReady);
+
       this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
-      // either I use adapt to trigger... or this... then tracking hub will listen to 'stateReady' on WHATEVER tracking handler is state-enabled
-      //this.listenTo(Adapt, 'odilrsstorage:stateReady', this.onStateReady);
+      // either I use adapt to trigger... or this... then tracking hub will listen to 'stateLoaded' on WHATEVER tracking handler is state-enabled
       this._data.currentPage = "";
       this._interval = setInterval(this.periodicSessionTimeUpdate, 3000);
     },
@@ -104,7 +105,6 @@ define([
           localStorage.setItem('UserID', userID);
 //          state = this.initializeState(newUserID);
  //         console.log('odilrs: state ready');
-//          this.trigger('stateReady', state);
       }
       console.log('odilrs: launch sequence finished');
       this.trigger('launchSequenceFinished');
@@ -121,7 +121,9 @@ define([
     initializeState: function(newUserID) {
         // Initializes our own state representation. That would be: state.odilrsstorage
         // data structure as explained in https://github.com/Acutilis/adapt-trackingHub/pull/1/commits/36ee60afa0385e7d5dbcdcd6c50bd81f06fc98cf
-        state =  { "_id": null, "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
+        var fullState = {};
+        // state is 'own' state ... the part that this channel handler cares about.
+        var state =  { "_id": null, "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
 
         var lang = Adapt.config.get('_activeLanguage');
         // init user
@@ -179,8 +181,12 @@ define([
             }, this);
         }, this);
 
-        this.trigger('stateReady', state);
-        return state;
+        fullState[this._OWNSTATEKEY] = state
+        return fullState;
+    },
+
+    onStateReady: function() {
+      this._OWNSTATE = this._THUB._state[this._OWNSTATEKEY]; // the part of state that THIS transportHandler manages...
     },
 
     saveState: function(state, channel, courseID) {
@@ -193,7 +199,7 @@ define([
       //this._THUB._state[this._OWNSTATENAME].user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
       // Yes THIS SHOULD be using _OWNSTATENAME BUT I'M STILL NOT MANAGING IT... JUST MANAGING THE WHOLE STATE FOR NOW.
       //
-      this._THUB._state.user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
+      this._OWNSTATE.user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
       // Unlike the originial odilrsstorage-transportHandler, I'm not saving to localStorage, only to the backend server.
       //
       // A custom Transport Handler should not trigger messages 'in the name of trackingHub' ...
@@ -202,7 +208,7 @@ define([
       // Adapt.trigger('trackingHub:saving'); // LOOK AT THE THEME... IT'S LISTENING TO THIS TO UPDATE SOMETHING
 
       var objToSend = {};
-      objToSend.data = JSON.stringify(this._THUB._state); // we save the WHOLE state
+      objToSend.data = JSON.stringify(this._THUB._state); // we save the FULL state
       $.ajax({
         type: "POST",
         url: this._URL + "store.php",
@@ -241,8 +247,8 @@ define([
        if (!state || state == {} ) {
            state = this.initializeState(userID);
        }
-       console.log('odilrs: state ready');
-       this.trigger('stateReady', state);
+       console.log('odilrs: state loaded');
+       this.trigger('stateLoaded', state);
     },
 
     onStateLoadError: function(xhr, ajaxOptions, thrownError) {
@@ -250,16 +256,16 @@ define([
        var newUserID = this.getUserID(); 
        var state = this.initializeState(newUserID);
        console.log('odilrs: state ready');
-       //this.trigger('stateReady', state);
     },
 
     applyStateToStructure: function() {
-        if (! this._THUB._state) return;
-        console.log('applying odilrs state to structure...');
+        // if (! this._THUB._state[this._OWNSTATEKEY]) return;
+        if (! this._OWNSTATE) return;
+        console.log('applying '+ this._OWNSTATEKEY + ' state to structure...');
         // this function will be called from trackingHub
-        // YES here I will have to deal with _state[this._OWNSTATENAME] but for now I have all the state together...
-        //var state = this._THUB._state[this._OWNSTATENAME]; // the part of state that THIS transportHandler manages...
-        var state = this._THUB._state; // the part of state that THIS transportHandler manages...
+        // var state = this._THUB._state[this._OWNSTATEKEY]; // the part of state that THIS transportHandler manages...
+        var state = this._OWNSTATE; // the part of state that THIS transportHandler manages...
+        // var state = this._THUB._state; // the part of state that THIS transportHandler manages...
 
         // walk the hierarchy and initialize our the Adapt objects based on our state representation
         _.each(Adapt.contentObjects.models, function(contentPage) {
@@ -353,7 +359,8 @@ define([
       this.updateCurrentlyShownPageData();
 
       var pageID = args.get('_id');
-      var pageProgressObj = this._THUB._state.progress[pageID]; 
+      // var pageProgressObj = this._THUB._state[this._OWNSTATEKEY].progress[pageID];   //use abbreviated form
+      var pageProgressObj = this._OWNSTATE.progress[pageID]; 
       // pageProgressObj "points to" the progress object  in _state
       if (! pageProgressObj.startTime) {
          pageProgressObj.startTime = new Date();
@@ -377,7 +384,8 @@ define([
       // this happens when a page is completed
       console.log('PAGE COMPLETED! contentObjects_change_isComplete in ODILRSStorage... type ' + JSON.stringify(args.get('_type')));
       var pageID = args.get('_id');
-      var pageProgressObj = this._THUB._state.progress[pageID]; 
+      //var pageProgressObj = this._THUB._state.progress[pageID]; 
+      var pageProgressObj = this._OWNSTATE.progress[pageID]; 
       // if endTime has not been recorded before, then record it.
       if (! pageProgressObj.endTime) {
          pageProgressObj.endTime = new Date();
@@ -390,7 +398,8 @@ define([
       console.log('contentObjects_change_isInteractionComplete in ODILRSStorage...' + JSON.stringify(obj));
 
       var pageID = args.get('_id');
-      var pageProgressObj = this._THUB._state.progress[pageID]; 
+     // var pageProgressObj = this._THUB._state.progress[pageID]; 
+      var pageProgressObj = this._OWNSTATE.progress[pageID]; 
       pageProgressObj.progress = args.get('completedChildrenAsPercentage');
     },
 
@@ -400,7 +409,8 @@ define([
 
       //update our representation of state
       var blockID = args.get('_id');
-      this._THUB._state.blocks[blockID] = args.get('_isComplete');
+      // this._THUB._state.blocks[blockID] = args.get('_isComplete');
+      this._OWNSTATE.blocks[blockID] = args.get('_isComplete');
     },
 
     blocks_change__isInteractionComplete: function (args) {
@@ -409,7 +419,8 @@ define([
 
       //update our representation of state
       var blockID = args.get('_id');
-      this._THUB._state.blocks[blockID] = args.get('_isComplete');
+      // this._THUB._state.blocks[blockID] = args.get('_isComplete');
+      this._OWNSTATE.blocks[blockID] = args.get('_isComplete');
     },
 
     components_change__isComplete: function(args) {
@@ -417,7 +428,8 @@ define([
       console.log('components_change__isComplete in ODILRSStorage...' + JSON.stringify(obj));
       //update our representation of state
       var componentID = args.get('_id');
-      this._THUB._state.components[componentID] = args.get('_isComplete');
+      // this._THUB._state.components[componentID] = args.get('_isComplete');
+      this._OWNSTATE.components[componentID] = args.get('_isComplete');
     },
 
     components_change__isInteractionComplete: function(args) {
@@ -425,12 +437,13 @@ define([
       console.log('components_change__isInteractionComplete in ODILRSStorage...' + JSON.stringify(obj));
       //update our representation of state
       var componentID = args.get('_id');
-      this._THUB._state.components[componentID] = args.get('_isComplete');
+      // this._THUB._state.components[componentID] = args.get('_isComplete');
+      this._OWNSTATE.components[componentID] = args.get('_isComplete');
 
       if (args.get('_userAnswer')) {
         // update answers direct
-        this._THUB._state.answers[componentID]._userAnswer = args.get('_userAnswer');
-        this._THUB._state.answers[componentID]._isCorrect = args.get('_isCorrect');
+        this._OWNSTATE.answers[componentID]._userAnswer = args.get('_userAnswer');
+        this._OWNSTATE.answers[componentID]._isCorrect = args.get('_isCorrect');
         // update answers in 'progress'
       }
     },

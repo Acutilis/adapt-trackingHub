@@ -12,7 +12,8 @@ define([
 
     var TrackingHub = _.extend({
 
-    _state: null,
+    _state: {},
+    _OWNSTATEKEY: 'tkhub', // this should be pretty much immutable, once set.
     _sessionID: null,
     _config: null,
     _channels: [],
@@ -60,6 +61,11 @@ define([
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
     },
 
+
+    /*******************************************
+    /*******      CONFIG  FUNCTIONS      *******
+    /*******************************************/
+
     onConfigLoaded: function() {
       // just add the defined channels to trackingHub
       var isXapiChannel;
@@ -80,59 +86,6 @@ define([
           }
         }
       }, this);
-    },
-
-    onDataReady: function() {
-      // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
-      console.log('Starting launch sequence...');
-      if (this._launchManagerChannel) {
-          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
-          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
-          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
-      } else {
-          // just call the function directly, as if the launch sequence had really finished.
-          this.onLaunchSequenceFinished();
-      }
-    },
-
-    onLaunchSequenceFinished: function(ev) {
-      console.log('launch sequence finished.');
-      // once the launch seq is complete, let's attempt to load state, if there's a state source
-      console.log('loading state...');
-      if (this._stateSourceChannel) {
-        var transportHandler = this._transport_handlers[this._stateSourceChannel._transport._handlerName];
-        this.listenToOnce(transportHandler, 'stateReady', this.onStateReady);
-        transportHandler.loadState(this._stateSourceChannel, this._config._courseID);
-      } else {
-        // just call the function directly, as if the state load operation had really finished.
-        this.onStateReady();
-      }
-    },
-
-    onStateReady: function(state) {
-        console.log('state ready');
-        // when the state is ready, store it, and 
-        this._state = state;
-        this.applyStateToStructure();
-        // this should really be:
-        // this._THUB._state[_OWNSTATENAME] = state
-        this.setupInitialEventListeners();
-    },
-
-    applyStateToStructure: function() {
-        // apply the default state managed by trackingHub
-        console.log('applying trakingHub state to structure...');
-        //
-        // if (this._state) {
-        // }
-        console.log('trakingHub state applied to structure.');
-        // and then call every transport handler (channelHandler) to apply his particular state representation
-        _.each(this._transport_handlers, function(thandler, name, list) {
-            if(thandler.applyStateToStructure) {
-                thandler.applyStateToStructure();
-            }
-        }, this);
-
     },
 
     checkConfig: function() {
@@ -166,6 +119,75 @@ define([
       console.log('trackingHub Error: Channel specification is wrong in config.');
       return false;
     },
+
+    /*******  END CONFIG FUNCTIONS *******/
+
+
+    onDataReady: function() {
+      // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
+      console.log('Starting launch sequence...');
+      if (this._launchManagerChannel) {
+          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
+          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
+          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
+      } else {
+          // just call the function directly, as if the launch sequence had really finished.
+          this.onLaunchSequenceFinished();
+      }
+    },
+
+    /*******************************************
+    /******* STATE MANAGEMENT  FUNCTIONS *******
+    /*******************************************/
+
+
+    onLaunchSequenceFinished: function(ev) {
+      console.log('launch sequence finished.');
+      // once the launch seq is complete, let's attempt to load state, if there's a state source
+      if (this._stateSourceChannel) {
+        var transportHandler = this._transport_handlers[this._stateSourceChannel._transport._handlerName];
+        this.listenToOnce(transportHandler, 'stateLoaded', this.onStateLoaded);
+        console.log('loading state...');
+        transportHandler.loadState(this._stateSourceChannel, this._config._courseID);
+      } 
+    },
+
+    onStateLoaded: function(fullState) {
+        console.log('state loaded');
+        // The FULL version of the state is saved/loaded. Then each ChannelHandler (including trackingHub) will 
+        // deal with its 'own' part
+        this._state = fullState;
+        this.trigger('stateReady');
+        console.log('state ready');
+        this.applyStateToStructure();
+        // this should really be:
+        // this._THUB._state[_OWNSTATENAME] = state
+        this.setupInitialEventListeners();
+    },
+
+    applyStateToStructure: function() {
+        // apply the default state managed by trackingHub
+        this.applyTHubStateToStructure(); 
+        // and then call every transport handler (channelHandler) to apply its particular state representation
+        _.each(this._transport_handlers, function(thandler, name, list) {
+            if(thandler.applyStateToStructure) {
+                thandler.applyStateToStructure();
+            }
+        }, this);
+
+    },
+
+    applyTHubStateToStructure: function() {
+        if (this._state[this._OWNSTATEKEY]) {
+          console.log('applying trakingHub state to structure...');
+          // do stuff
+          console.log('trakingHub state applied to structure.');
+        }
+    },
+
+
+    /*******  END STATE MANAGEMENT FUNCTIONS *******/
+
 
     setupInitialEventListeners: function() {
       console.log('setting up initial event listeners (for tracked messages)');
