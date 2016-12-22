@@ -21,6 +21,9 @@ define([
     _data: {},
     _message_composers: {},
     _transport_handlers: {},
+    _launchManagerChannel: null,
+    _stateSourceChannel: null,
+    _stateStoreChannel: null,
     _xapiManager: xapiManager,
 
     // Basic, default tracked messages
@@ -35,9 +38,9 @@ define([
         'assessments:reset',
         'questionView:recordInteraction'
        ],
-       blocks: ['change:_isComplete'],
+       blocks: ['change:_isComplete','change:_isInteractionComplete'],
        course: ['change:_isComplete'],
-       components: ['change:_isInteractionComplete'],
+       components: ['change:_isComplete','change:_isInteractionComplete'],
        // I think that these additions by @davetaz should remain in the core trackingHub
        contentObjects: ['change:_isComplete',
                         'change:_isInteractionComplete',
@@ -58,6 +61,7 @@ define([
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
+      //this.listenToOnce(Adapt, 'trackingHub:launchSequenceFinished', this.onLaunchSequenceFinished);
 
       // 3 lines moved from here to ODILRSStorageTH
       //this._data.currentPage = "";
@@ -71,10 +75,13 @@ define([
 
       if (!this.checkConfig())
         return;
-      xapiManager.courseID = this._config._courseID;
+      xapiManager.courseID = this._config._courseID;  
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
+          if (channel._isLaunchManager) { this._launchManagerChannel = channel };
+          if (channel._isStateSource) { this._stateSourceChannel = channel };
+          if (channel._isStateStore) { this._stateStoreChannel = channel };
           isXapiChannel = (channel._msgComposerName.indexOf('xapi') == 0) ||
             (channel._transport._handlerName.indexOf('xapi') == 0);
           if (isXapiChannel) {
@@ -85,14 +92,26 @@ define([
     },
 
     onDataReady: function() {
+      // start launch sequence
+      console.log('Starting launch sequence...');
+      if (this._launchManagerChannel) {
+          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
+          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
+          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
+      } else {
+          // just call the function directly, as if the launch sequence had really finished.
+          this.onLaunchSequenceFinished();
+      }
+      // which will trigger LOAD sequence
+      // which will setup InitialEventListeners
+      // ALL THIS, ASYNCHRONOUSLY!
       // TODO: loadState will be executed AFTER the LaunchSequence, controlled by _activeLaunch in config
-      this.loadState();  // this should be startUpState or prepareState
       // I SET UP the event listeners AFTER the state is loaded, otherwise, the load state will change things in the structure
       // and the events will be fired, and the state saved again...
       // NO NO NO this does'nt work!! the loadState is going to be most likely, async, and might end AFTER setupInitialEventListeners has run
       // SO the setupInitialEventListenes SHOULD be called after the prepareState has issued a 'stateReady' event!!!
       // onStateReady -> setupInitialEventListeners.
-      this.setupInitialEventListeners();
+      // this.setupInitialEventListeners();
       // Important: state change listeners must be loaded AFTER loading the state
 
       // 1 line moved to ODILRSStorageHandler
@@ -108,6 +127,47 @@ define([
       // this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
     },
 
+    onLaunchSequenceFinished: function(ev) {
+      console.log('launch sequence finished.');
+      // once the launch seq is complete, let's attempt to load state, if there's a state source
+      console.log('loading state...');
+      if (this._stateSourceChannel) {
+        var transportHandler = this._transport_handlers[this._stateSourceChannel._transport._handlerName];
+        this.listenToOnce(transportHandler, 'stateReady', this.onStateReady);
+        transportHandler.loadState(this._stateSourceChannel, this._config._courseID);
+      } else {
+        // just call the function directly, as if the state load operation had really finished.
+        this.onStateReady();
+      }
+    },
+
+    onStateReady: function(state) {
+        console.log('state ready');
+        // when the state is ready, store it, and 
+        this._state = state;
+        this.applyStateToStructure();
+        // this should really be:
+        // this._THUB._state[_OWNSTATENAME] = state
+        //   this GOES INTO TRACKINGHUB! and it appliestSTate to Structure... delegating the parts to the specific ChannelHandlers...
+        // this.applyStateToStructure();
+        this.setupInitialEventListeners();
+    },
+
+    applyStateToStructure: function() {
+        // apply the default state managed by trackingHub
+        console.log('applying trakingHub state to structure...');
+        //
+        // if (this._state) {
+        // }
+        console.log('trakingHub state applied to structure.');
+        // and then call every transport handler (channelHandler) to apply his particular state representation
+        _.each(this._transport_handlers, function(thandler, name, list) {
+            if(thandler.applyStateToStructure) {
+                thandler.applyStateToStructure();
+            }
+        }, this);
+
+    },
     /*
      // function moved to ODILRSStorageHandler.
     sessionTimer: function(target) {
@@ -203,6 +263,7 @@ define([
     },
   
     setupInitialEventListeners: function() {
+      console.log('setting up initial event listeners (for tracked messages)');
       this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
     
@@ -224,7 +285,7 @@ define([
       };
       return obj;
     },
-  
+
     addCustomEventListener: function(eventSource, eventName) {
       // this fuction is susceptible of being  called form other plugins
       //(mainly custom components that implement custom reporting)

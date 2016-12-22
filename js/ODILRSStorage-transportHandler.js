@@ -18,8 +18,10 @@ define([
       console.log('Initializing ' + this._NAME);
       // this._URL = channel._transport._endpoint;
       // 3 lines moved from th to here
+      _.bindAll(this, 'onStateLoadSuccess', 'onStateLoadError', 'onStateSaveSuccess', 'onStateSaveError');
       this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
-      this.listenTo(Adapt, 'odilrsstorage:stateLoaded', this.onStateReady);
+      // either I use adapt to trigger... or this... then tracking hub will listen to 'stateReady' on WHATEVER tracking handler is state-enabled
+      //this.listenTo(Adapt, 'odilrsstorage:stateReady', this.onStateReady);
       this._data.currentPage = "";
       this._interval = setInterval(this.periodicSessionTimeUpdate, 3000);
     },
@@ -42,7 +44,7 @@ define([
       //console.log('funcName = ' + funcName);
       if (this.hasOwnProperty(funcName)) {
         this[funcName](args);
-      } 
+      }
       // the fact that there's no method to handle a specific event is NOT an error, it's simply that this TransportHandler doesn't care  about that event.
     },
 
@@ -50,7 +52,6 @@ define([
       // THERE'S NO SUCH THING as 'deliver'
       //console.log(msg);
     },
-
 
     onStateChanged: function(target) {
       console.log('onStateChanged in ODILRSStorage...');
@@ -92,10 +93,6 @@ define([
 
     getUserID: function() {
       // not sure that making a delayed call on fail is the right thing to do...
-      // For testing purposes, I'm going to return a fixed uuid here without calling the real api
-      //localStorage.setItem("UserID", '9F6CAA88-A151-4EA4-A462-0D86E8F6B6D8');
-      //return ;
-      // END jpablo128 FAKE
       $.get( this._URL + "create_id.php", function( data ) {
         localStorage.setItem("UserID",data);
       })
@@ -125,9 +122,98 @@ define([
       return query_string;
     },
 
+
+    /*******************************************
+    /*******  LAUNCH SEQUENCE  FUNCTIONS *******
+    /*******************************************/
+
+    startLaunchSequence: function() {
+        //there's really no launch sequence in this transportHandler
+        // YES YES YES  
+        // LAUNCH sequence, if there's no userID IN LOcal storage,  get one, and initialize state for it!
+        var loadID = localStorage.getItem('UserID');
+        if (! loadID) {
+            var newUserID = this.getUserID();
+            localStorage.setItem('UserID', newUserID);
+            //state = this.initializeState(newUserID);
+        }
+        console.log('odilrs: launch sequence finished');
+        this.trigger('launchSequenceFinished');
+    },
+
+    /*******  END LAUNCH SEQUENCE FUNCTIONS *******/
+
+
+
+
     /*******************************************
     /*******  STATE MANAGEMENT FUNCTIONS *******
     /*******************************************/
+
+    initializeState: function(newUserID) {
+        // Initializes our own state representation. That would be: state.odilrsstorage
+        // data structure as explained in https://github.com/Acutilis/adapt-trackingHub/pull/1/commits/36ee60afa0385e7d5dbcdcd6c50bd81f06fc98cf
+        state =  { "_id": null, "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
+
+        var lang = Adapt.config.get('_activeLanguage');
+        // init user
+        state.user.id = newUserID;
+        state.user.lastSave = null;
+        state.user.email = null;
+        state.user.email_sent = false;
+
+        // walk the hierarchy and initialize our state representation
+        _.each(Adapt.contentObjects.models, function(contentPage) {
+            var contentPageID = contentPage.get('_id');
+            // progress by page (various data points)
+            state.progress[contentPageID] = {};
+            state.progress[contentPageID].startTime = null;
+            state.progress[contentPageID].endTime = null;
+            state.progress[contentPageID].sessionTime = null;
+            state.progress[contentPageID].courseID = null;
+            state.progress[contentPageID].theme = null;
+            state.progress[contentPageID].progress = 0;
+
+            _.each(contentPage.get('_children').models, function(article) {
+                var articleID = article.get('_id');
+
+                _.each(article.get('_children').models, function(block) {
+                    var blockID = block.get('_id');
+                    state.blocks[blockID] = block.get('_isComplete');
+
+                    _.each(block.get('_children').models, function(component) {
+                        var componentID = component.get('_id');
+                        state.components[componentID] = component.get('_isComplete');
+                        // update answers and progress structures of our state representation
+                        if (component.get('_isQuestionType')) {
+                            // answers
+                            state.answers[componentID] = {};
+                            state.answers[componentID]._userAnswer = component.get('_userAnswer');
+                            state.answers[componentID]._isCorrect = component.get('_isCorrect');
+                            // progress.answers
+                            state.progress[contentPageID].answers = {};
+                            state.progress[contentPageID].answers[componentID] = {};
+                            state.progress[contentPageID].answers[componentID]._userAnswer = component.get('_userAnswer');
+                            state.progress[contentPageID].answers[componentID]._isCorrect = component.get('_isCorrect');
+                            if (!state.progress[contentPageID].answers._assessmentState) {
+                                state.progress[contentPageID].answers._assessmentState = "Not Attempted";
+                            }
+                            if (component.get('_isCorrect') == false) {
+                                state.progress[contentPageID].answers._assessmentState = "Failed";  
+                            } else if (component.get('_isCorrect') == true && this._state.progress[contentPageID].answers._assessmentState != "Failed") {
+                                state.progress[contentPageID].answers._assessmentState = "Passed";
+                            }
+                            if (!component.get('_userAnswer') || component.get('_userAnswer').length < 1) {
+                                state.progress[contentPageID].answers._assessmentState = "Incomplete";  
+                            }
+                        }                     }, this);
+                }, this);
+            }, this);
+        }, this);
+
+        this.trigger('stateReady', state);
+        return state;
+    },
 
     saveState: function(state, channel, courseID) {
       // IF we want this channelHandler to be  capable of saving state, we have to implement this function.
@@ -136,7 +222,10 @@ define([
       // I have the URL init here because I need the channel... BUT when this becomes a 'channelHandler'...? is that going to change?
       this._URL = channel._transport._endpoint;
 
-      this._THUB._state[_OWNSTATENAME].user.lastVame = new Date().toString();  // this is _state.odilrs.user.lastSave
+      //this._THUB._state[this._OWNSTATENAME].user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
+      // Yes THIS SHOULD be using _OWNSTATENAME BUT I'M STILL NO MANAGING IT... JUST MANAGING THE WHOLE STATE FOR NOW.
+      //
+      this._THUB._state.user.lastSave = new Date().toString();  // this is _state.odilrs.user.lastSave
       // I DON'T WANT TO SAVE IT TO 2 PLACES not to localStorage!
       // localStorage.setItem(courseID,JSON.stringify(state));
       //
@@ -146,21 +235,21 @@ define([
       // Adapt.trigger('odilrs:savingState')
       // Adapt.trigger('trackingHub:saving'); // LOOK AT THE THEME... IT'S LISTENING TO THIS TO UPDATE SOMETHING
       var objToSend = {};
-      objToSend.data = JSON.stringify(this._THUB._state);
+      objToSend.data = JSON.stringify(this._THUB._state); // we save the WHOLE state
       $.ajax({
         type: "POST",
         url: this._URL + "store.php",
         data: objToSend,
-        success: this.onSaveStateSuccess,
-        error: this.onSaveStateError,
+        success: this.onStateSaveSuccess,
+        error: this.onStateSaveError,
       });
     },
 
-    onSaveStateSuccess: function(ev) {
+    onStateSaveSuccess: function(ev) {
        Adapt.trigger('odilrs:saveStateSucceded');
     },
 
-    onSaveStateError: function(xhr, ajaxOptions, thrownError) {
+    onStateSaveError: function(xhr, ajaxOptions, thrownError) {
        console.log("State save failed: " + thrownError);
        // Adapt.trigger('trackingHub:failed'); // Modify the theme because it's listening for this event
        Adapt.trigger('odilrs:saveStateFailed');
@@ -188,7 +277,8 @@ define([
       if (!loadID) {
           var newUserID = this.getUserID(); 
           state = this.initializeState(newUserID);
-          Adapt.trigger('odilrsstorage:stateLoaded', state);
+          console.log('odilrs: state ready');
+          this.trigger('stateReady', state);
       }
 
       var loadUrl = this._URL + 'load.php?id=' + loadID;
@@ -196,98 +286,69 @@ define([
           url: loadUrl,
           success: this.onStateLoadSuccess,
       });
+    },
 
     onStateLoadSuccess: function(responseText) {
        var state = $.parseJSON(responseText);
-       localStorage.setItem('UserID', state.user.id);
-       Adapt.trigger('odilrsstorage:stateLoaded', state);
+       var userID = localStorage.getItem('UserID');
+       if (!state || state == {} ) {
+           state = this.initializeState(userID);
+       }
+       console.log('odilrs: state ready');
+       this.trigger('stateReady', state);
     },
 
     onStateLoadError: function(xhr, ajaxOptions, thrownError) {
        console.log("LRS load failed " + thrownError);
        var newUserID = this.getUserID(); 
        var state = this.initializeState(newUserID);
-       Adapt.trigger('odilrsstorage:stateLoaded', state);
+       console.log('odilrs: state ready');
+       //this.trigger('stateReady', state);
     },
 
-    // ----
 
-    initializeState: function(newUserID) {
-        // Initializes our own state representation. That would be: state.odilrsstorage
-        // data structure as explained in https://github.com/Acutilis/adapt-trackingHub/pull/1/commits/36ee60afa0385e7d5dbcdcd6c50bd81f06fc98cf
-        state =  { "_id": None, "blocks": {}, "components": {}, "anwers": {}, "progress": {}, "user": {} }
+    applyStateToStructure: function() {
+        if (! this._THUB._state) return;
+        console.log('applying odilrs state to structure...');
+        // this function will be called from trackingHub
+        // YES here I will have to deal with _state[this._OWNSTATENAME] but for now I have all the state together...
+        //var state = this._THUB._state[this._OWNSTATENAME]; // the part of state that THIS transportHandler manages...
+        var state = this._THUB._state; // the part of state that THIS transportHandler manages...
 
-        var lang = Adapt.config.get('_activeLanguage');
-        // init user
-        state.user.id = newUserID;
-        state.user.lastSave = null;
-        state.user.email = null;
-        state.user.email_sent = false;
-
-        // walk the hierarchy and initialize our state representation
+        // walk the hierarchy and initialize our the Adapt objects based on our state representation
         _.each(Adapt.contentObjects.models, function(contentPage) {
             var contentPageID = contentPage.get('_id');
-            // progress by page (various data points)
-            state.progress[contentPageID].startTime = null;
-            state.progress[contentPageID].endTime = null;
-            state.progress[contentPageID].sessionTime = null;
-            state.progress[contentPageID].courseID = null;
-            state.progress[contentPageID].theme = null;
-            state.progress[contentPageID].progress = 0;
 
-            _.each(contentObject.get('_children').models, function(article) {
+            _.each(contentPage.get('_children').models, function(article) {
                 var articleID = article.get('_id');
 
-                _each(article.get('_children').models, function(block) {
+                _.each(article.get('_children').models, function(block) {
                     var blockID = block.get('_id');
-                    state.blocks[blockID] = block.get('_isComplete');
+                    block.set('_isComplete', state.blocks[blockID]);
 
-                    _each(block, get('_children').models, function(component) {
+                    _.each(block.get('_children').models, function(component) {
                         var componentID = component.get('_id');
-                        state.components[componentID] = component.get('_isComplete');
-                        // update answers and progress structures of our state representation
+                        component.set('_isComplete', state.components[componentID]);
+
+                        // update Adapt object based on  state representation (answers and progress)
                         if (component.get('_userAnswer')) {
                             // answers
-                            state.answers[componentID] = {};
-                            state.answers[componentID]._userAnswer = component.get('_userAnswer');
-                            state.answers[componentID]._isCorrect = component.get('_isCorrect');
+                            component.set('_userAnswer', state.answers[componentID]._userAnswer);
+                            component.set('_isCorrect', state.answers[componentID]._isCorrect);
                             // progress.answers
-                            state.progress[contentPageID].answers = {};
-                            state.progress[contentPageID].answers[componentID] = {};
-                            state.progress[contentPageID].answers[componentID]._userAnswer = component.get('_userAnswer');
-                            state.progress[contentPageID].answers[componentID]._isCorrect = component.get('_isCorrect');
-                            if (!state.progress[contentPageID].answers._assessmentState) {
-                                state.progress[contentPageID].answers._assessmentState = "Not Attempted";
-                            }
-                            if (component.get('_isCorrect') == false) {
-                                state.progress[contentPageID].answers._assessmentState = "Failed";  
-                            } else if (component.get('_isCorrect') == true && this._state.progress[contentPageID].answers._assessmentState != "Failed") {
-                                state.progress[contentPageID].answers._assessmentState = "Passed";
-                            }
-                            if (component.get('_userAnswer').length < 1) {
-                                state.progress[contentPageID].answers._assessmentState = "Incomplete";  
-                            }
+                            component.set('_userAnswer', state.progress[contentPageID].answers[componentID]._userAnswer);
+                            component.set('_isCorrect', state.progress[contentPageID].answers[componentID]._isCorrect);
                         }
                     }, this);
                 }, this);
             }, this);
         }, this);
-        return state;
+        // would I need to trigger an 'stateApplied' event or something??
+        console.log('odilrs state applied to structure...');
+
     },
 
-    onStateReady: function(state) {
-        //store own repr?
-        _OWNSTATE = state;
-        // this should really be:
-        // this._THUB._state[_OWNSTATENAME] = state
-        //   this GOES INTO TRACKINGHUB! and it appliestSTate to Structure... delegating the parts to the specific ChannelHandlers...
-        // this.applyStateToStructure();
-    },
-
-    applyStateToStructure: function() {
-    },
-
-    /*******  END STATE MANAGEMENT FUNCTIONS *******
+    /*******  END STATE MANAGEMENT FUNCTIONS ********/
 
 
     /* Functions moved from manipulated trackinghub  to here (odilrsstoragehandler) */
@@ -443,7 +504,7 @@ define([
           if (contentPageID) {
             this._data.progress[contentPageID] = pageProgress;
           }
-          
+
         }
         if (contentPageID) {
           this._state.progress[contentPageID] = pageProgress;
@@ -508,7 +569,7 @@ define([
       }
     },
 
-    updateCurrentlyShownPageData: function() {
+    updateCurrentlyShownPageData: function(args) {
       // this function gets called when navigating away from a page (i.e., when the user has navigated to a new page)
       if (this._currentlyShownPage) {
           // the 'currentlyShownPage' is the one the user has left
@@ -527,9 +588,14 @@ define([
 
     },
 
-    /**************************************************/
-    /*****  Specific event processing functions   *****/
-    /**************************************************/
+    /**************************************************
+     *****  Specific event processing functions   *****
+     **************************************************
+
+      As each event happens, all these event handlers 
+      need to do is to update our internal state 
+      representation.
+     **************************************************/
 
     Adapt_router_page: function (args) {
       // This function gets executed when a user has navigated to a page
@@ -541,6 +607,7 @@ define([
       //
       //  this.sessionTimer(args);
 
+      console.log('Adapt_router_page in ODILRSStorage');
       this.updateCurrentlyShownPageData();
 
       var pageID = args.get('_id');
@@ -561,7 +628,7 @@ define([
     Adapt_router_menu: function (args) {
         console.log('visited menu...');
         // when user goes to the menu, we must also update the cumulative time the last page  was displayed
-        this.updateCurrentlyShownPageData();
+        this.updateCurrentlyShownPageData(args);
     },
 
     contentObjects_change__isComplete: function (args) {
@@ -589,36 +656,42 @@ define([
       var obj = { type: args.get('_type'), id: args.get('_id')};
       console.log('blocks_change_isComplete in ODILRSStorage...' + JSON.stringify(obj));
 
-      var pageID = args.get('_id');
-      var pageProgressObj = this._THUB._state.progress[pageID]; 
-      pageProgressObj.progress = args.get('completedChildrenAsPercentage');
-      // WE DON'T NEED TO DO ANYTHING HERE!!! JUST UPDATE THE INTERNAL REPRESENTATION OF STATE!
-      // SEE THE END OF THE dispatchTrackedMsg function in TrackingHub
+      //update our representation of state
+      var blockID = args.get('_id');
+      this._THUB._state.blocks[blockID] = args.get('_isComplete');
     },
 
-    // I NEED TO update on component complete....
-    //
-//        if (contentObject.get('completedChildrenAsPercentage')) {
-//          localProgress = contentObject.get('completedChildrenAsPercentage');
-//          if (localProgress > 10 && !pageProgress.startTime) {
-//            pageProgress.startTime = new Date();
-//            console.log('PAB HERE 1');
-//            pageProgress.progress = localProgress;
-//          }
-//          if (localProgress > 99) {
-//            pageProgress.endTime = new Date();
-//            console.log('PAB HERE 2');
-//            pageProgress.progress = 100;
-//            pageProgress._isComplete = true;
-//          }
-//          console.log('PAB HERE 3');
-//          pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
-//          if (contentPageID) {
-//            this._data.progress[contentPageID] = pageProgress;
-//          }
-//        }
+    blocks_change__isInteractionComplete: function (args) {
+      var obj = { type: args.get('_type'), id: args.get('_id')};
+      console.log('blocks_change_isInteractionComplete in ODILRSStorage...' + JSON.stringify(obj));
 
+      //update our representation of state
+      var blockID = args.get('_id');
+      this._THUB._state.blocks[blockID] = args.get('_isComplete');
+    },
 
+    components_change__isComplete: function(args) {
+      var obj = { type: args.get('_type'), id: args.get('_id')};
+      console.log('components_change__isComplete in ODILRSStorage...' + JSON.stringify(obj));
+      //update our representation of state
+      var componentID = args.get('_id');
+      this._THUB._state.components[componentID] = args.get('_isComplete');
+    },
+
+    components_change__isInteractionComplete: function(args) {
+      var obj = { type: args.get('_type'), id: args.get('_id')};
+      console.log('components_change__isInteractionComplete in ODILRSStorage...' + JSON.stringify(obj));
+      //update our representation of state
+      var componentID = args.get('_id');
+      this._THUB._state.components[componentID] = args.get('_isComplete');
+
+      if (args.get('_userAnswer')) {
+        // update answers direct
+        this._THUB._state.answers[componentID]._userAnswer = args.get('_userAnswer');
+        this._THUB._state.answers[componentID]._isCorrect = args.get('_isCorrect');
+        // update answers in 'progress'
+      }
+    },
 
   }, Backbone.Events);
 
