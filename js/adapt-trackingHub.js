@@ -1,3 +1,5 @@
+// Careful... setting global variable because the ODI setup needs it...
+var theme="ODI";
 define([
   'coreJS/adapt',
   './string-messageComposer',
@@ -14,11 +16,13 @@ define([
     _sessionID: null,
     _config: null,
     _channels: [],
-    _data: {},
     _message_composers: {},
     _transport_handlers: {},
+    _launchManagerChannel: null,
+    _stateSourceChannel: null,
+    _stateStoreChannel: null,
     _xapiManager: xapiManager,
-     
+
     // Basic, default tracked messages
     _TRACKED_MSGS: {
        Adapt: [
@@ -31,41 +35,44 @@ define([
         'assessments:reset',
         'questionView:recordInteraction'
        ],
-       blocks: ['change:_isComplete'],
+       blocks: ['change:_isComplete','change:_isInteractionComplete'],
        course: ['change:_isComplete'],
-       contentObjects: ['change:_isComplete'],
-       contentObjects: ['change:_isInteractionComplete'],
-       contentObjects: ['change:_isVisible'],
-       components: ['change:_isInteractionComplete']
+       components: ['change:_isComplete','change:_isInteractionComplete'],
+       // I think that these additions by @davetaz should remain in the core trackingHub
+       contentObjects: ['change:_isComplete',
+                        'change:_isInteractionComplete',
+                        'change:_isVisible'
+       ]
     },
-  
+
     initialize: function() {
       this.sessionID = ADL.ruuid();
       xapiManager.registration = this.sessionID;
-  
+
       this.addMessageComposer(stringMessageComposer);
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
       this.addTransportHandler(localStorageTransportHandler);
+      // the ODILRSStorageTH was added by @davetaz. This will not be here.
       this.addTransportHandler(ODILRSStorageTransportHandler);
-  
+
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
-
-      this._data.currentPage = "";
-      var local = this;
-      local.interval = setInterval(function() {local.focus_check();},3000);
     },
-  
+
     onConfigLoaded: function() {
+      // just add the defined channels to trackingHub
       var isXapiChannel;
-  
+
       if (!this.checkConfig())
         return;
-      xapiManager.courseID = this._config._courseID;
+      xapiManager.courseID = this._config._courseID;  
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
+          if (channel._isLaunchManager) { this._launchManagerChannel = channel };
+          if (channel._isStateSource) { this._stateSourceChannel = channel };
+          if (channel._isStateStore) { this._stateStoreChannel = channel };
           isXapiChannel = (channel._msgComposerName.indexOf('xapi') == 0) ||
             (channel._transport._handlerName.indexOf('xapi') == 0);
           if (isXapiChannel) {
@@ -76,116 +83,121 @@ define([
     },
 
     onDataReady: function() {
-      this.setupInitialEventListeners();
-      this.loadState();
-      // Important: state change listeners smust be loaded AFTER loading the state
-      //this.listenTo(Adapt.contentObjects, 'change:_isVisible', this.sessionTimer);
-      this.listenTo(Adapt, 'router:page', this.sessionTimer);
-      this.listenTo(Adapt.components, 'change:_isInteractionComplete', this.onStateChanged);
-      this.listenTo(Adapt.contentObjects, 'change:_isInteractionComplete', this.saveState);
-      this.listenTo(Adapt.blocks, 'change:_isComplete', this.onStateChanged);
-//      this.listenTo(Adapt, 'assessment:complete', this.updateAssessmentDetails);
-      this.listenTo(Adapt, 'userDetails:updated', this.updateUserDetails);
-    },
-
-    sessionTimer: function(target) {
-        pageID = target.get('_trackingHub')._pageID || target.get('_id') || null;
-        this._data.currentPage = pageID;
-        this.window_focused();
-        Adapt.trigger('trackingHub:getUserDetails',this._data.user || {});
-    },
-
-    updateUserDetails: function(user) {
-      localuser = this._data.user || {};
-      for(var prop in user) {
-        localuser[prop] = user[prop];
-      }
-      this._data.user = localuser;
-    },
-/*
-    updateAssessmentDetails: function(assessment) {
-      allassessments = this._data.assessments || {};
-      local = allassessments[this._data.currentPage] || {};
-      for(var prop in assessment) {
-        local[prop] = assessment[prop];
-      }
-      allassessments[this._data.currentPage] = local;
-      this._data.assessments = allassessments;
-      this.saveState();
-      console.log(allassessments);
-    },
-  */  
-    onStateChanged: function(target) {
-      var stateValue = this._state[target.get("_type") + "s"][target.get("_id")];
-      if (!target.get("_isComplete") == stateValue || target.get('_userAnswer')) {
-        this.saveState();
+      // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
+      console.log('Starting launch sequence...');
+      if (this._launchManagerChannel) {
+          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
+          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
+          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
       } else {
-	      this.saveState();
+          // just call the function directly, as if the launch sequence had really finished.
+          this.onLaunchSequenceFinished();
       }
     },
-  
+
+    onLaunchSequenceFinished: function(ev) {
+      console.log('launch sequence finished.');
+      // once the launch seq is complete, let's attempt to load state, if there's a state source
+      console.log('loading state...');
+      if (this._stateSourceChannel) {
+        var transportHandler = this._transport_handlers[this._stateSourceChannel._transport._handlerName];
+        this.listenToOnce(transportHandler, 'stateReady', this.onStateReady);
+        transportHandler.loadState(this._stateSourceChannel, this._config._courseID);
+      } else {
+        // just call the function directly, as if the state load operation had really finished.
+        this.onStateReady();
+      }
+    },
+
+    onStateReady: function(state) {
+        console.log('state ready');
+        // when the state is ready, store it, and 
+        this._state = state;
+        this.applyStateToStructure();
+        // this should really be:
+        // this._THUB._state[_OWNSTATENAME] = state
+        this.setupInitialEventListeners();
+    },
+
+    applyStateToStructure: function() {
+        // apply the default state managed by trackingHub
+        console.log('applying trakingHub state to structure...');
+        //
+        // if (this._state) {
+        // }
+        console.log('trakingHub state applied to structure.');
+        // and then call every transport handler (channelHandler) to apply his particular state representation
+        _.each(this._transport_handlers, function(thandler, name, list) {
+            if(thandler.applyStateToStructure) {
+                thandler.applyStateToStructure();
+            }
+        }, this);
+
+    },
+
     checkConfig: function() {
       this._config = Adapt.config.has('_trackingHub') 
         ? Adapt.config.get('_trackingHub')
         : false;
-    
       if (this._config && this._config._isEnabled !== false) {
         this._config._courseID = this._config._courseID || ADL.ruuid();
         return true;
       }
       return false;
     },
-  
+
     checkChannelConfig: function(channel) {
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
       channel._xapiData = channel._xapiData || {};
-  
+
+      // new condition: _msgComposerName is optional . Review requiredness or not of config elements.
       if ((_.isArray(channel._ignoreEvents)) && (_.isObject(channel._xapiData)) &&
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
           !_.isEmpty(channel._name) ) &&
-        (channel.has('_msgComposerName') && _.isString(channel._msgComposerName) &&
-          !_.isEmpty(channel._msgComposerName) ) &&
         (channel.has('_transport') ) &&
         (channel._transport.hasOwnProperty('_handlerName') &&
           _.isString(channel._transport._handlerName) &&
          !_.isEmpty(channel._transport._handlerName) ) ) {
         return  true;
       }
-  
+
       console.log('trackingHub Error: Channel specification is wrong in config.');
       return false;
     },
-  
+
     setupInitialEventListeners: function() {
+      console.log('setting up initial event listeners (for tracked messages)');
       this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
-    
+
       _.each(_.keys(this._TRACKED_MSGS), function (eventSourceName) {
         _.each(this._TRACKED_MSGS[eventSourceName], function (eventName) {
           this.addLocalEventListener(eventSourceName, eventName);
         },this);
       },this);
     },
-  
+
     getObjFromEventSourceName: function (eventSourceName) {
       var obj = null;
+      // TODO: do this with an object? (name is key, value is the target object)
       switch (eventSourceName.toLowerCase()) {
         case 'adapt': obj = Adapt; break;
         case 'course': obj = Adapt.course; break;
         case 'blocks': obj = Adapt.blocks; break;
         case 'components': obj = Adapt.components; break;
+        case 'contentobjects': obj = Adapt.contentObjects; break;
       };
       return obj;
     },
-  
+
     addCustomEventListener: function(eventSource, eventName) {
       // this fuction is susceptible of being  called form other plugins
       //(mainly custom components that implement custom reporting)
       var sourceObj;
       var longEventName;
-  
+
       if (_.isString(eventSource)) {
         sourceObj = this.getObjFromEventSourceName(eventSourceName);
         eventSourceName = eventSource;
@@ -194,273 +206,100 @@ define([
         eventSourceName = sourceObj._NAME;
       }
       longEventName = eventSourceName + ':' + eventName;
-  
+
       this.listenTo(sourceObj, longEventName, function (args) {
         this.dispatchTrackedMsg(args, eventSourceName, eventName);
       }, this);
     },
-  
+
     addLocalEventListener: function(eventSourceName, eventName) {
       var sourceObj;
-  
+
       sourceObj = this.getObjFromEventSourceName(eventSourceName);
       this.listenTo(sourceObj, eventName, function (args) {
+        // TODO: dispatchTrackedMsg should be processTrackedMsg
         this.dispatchTrackedMsg(args, eventSourceName, eventName);
       }, this);
     },
-  
+
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
+      // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
+      // SO if every TransportHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
       var composer;
       var thandler;
       var message;
       var transportConfig;
-  
+
+      // TODO: add default processing for events in trackinghub... something like:
+      // if (this._config._doDefaultEventProcessing) { this.processEvent(channel, eventSourceName, eventName, args) }
       _.each(this._channels, function (channel) {
+        // TODO: Remove functionality for ignoring events. Efectively, if there's no handler for them they
+        // are ignored, and the checking takes more processing than not doing anything.
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
         if ( !isEventIgnored ) {
-          composer = this.getComposerFromComposerName(channel._msgComposerName);
-          thandler = this.getTransportHandlerFromTransportHandlerName(
-            channel._transport._handlerName);
-          message = composer.compose(eventSourceName, eventName, args);
-          thandler.deliver(message, channel);
+          thandler = this.getTransportHandlerFromTransportHandlerName(channel._transport._handlerName);
+          thandler.processEvent(channel, eventSourceName, eventName, args);
         }
       }, this);
+      // At this point in time, trackingHub and all channels have processed (or not) the event, so the whole representation of state is updated.
+      // So trackingHub can invoke the Save functionality, (although the specific save is performed by a concrete channel).
+      this.saveState();
     },
-  
+
     getComposerFromComposerName: function (cname) {
       return (this._message_composers[cname]);
     },
-  
+
     getTransportHandlerFromTransportHandlerName: function (thname) {
       return (this._transport_handlers[thname]);
     },
-  
+
     // *** functions addMessageComposer and addTransportHandler 
     // are here so other extensions (extensions implementing messageComposers and
     // TransportHandlers) can add themselves to trackingHub
     addMessageComposer: function (mc) {
       this._message_composers[mc['_NAME']] = mc;
     },
-  
+
     addTransportHandler: function (th) {
       this._transport_handlers[th['_NAME']] = th;
+      // @jpablo128 addition: call the THandler's  'initialize' function if it exists
+      th._THUB = this;
+      if (th.initialize) {
+          th.initialize();
+      }
     },
-      
-    updateState: function() {
-      this._state = this._state || { "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} };
-      courseID = this._config._courseID;
-      lang = Adapt.config.get('_activeLanguage');
-      this.window_unfocused();
-      // THIS DOESN'T WORK
-      //this._state._isComplete = Adapt.course.get('_isComplete');
-      this._state.user = this._data.user || {};
-      //$.parseJSON(localStorage.getItem("user")) || {};
-      pageID = this._data.currentPage;
-      _.each(Adapt.contentObjects.models, function(contentObject) {
-        contentPageID = contentObject.get('_trackingHub')._pageID || contentObject.get('_id');
-        // IDIOT DAVE THIS IS EVERY PAGE SO NOT JUST THE ONE ON THE SCREEN!!! 
-        //localID = contentObject.getParent()
-        localProgress = 0;
-        progressObject = this._data.progress || {};
-        //progressObject = $.parseJSON(localStorage.getItem("progress")) || {};
-        pageProgress = progressObject[contentPageID] || {};
-        if (contentPageID) {
-          this._state.progress[contentPageID] = {};
-        }
 
-        pageTimes = this._data.sessionTimes || {};
-        thisPage = pageTimes[contentPageID] || {};
-        //pageTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-        
-        sessionTime = thisPage.sessionTime || undefined;
-        pageProgress.sessionTime = sessionTime;
-        pageProgress.courseID = courseID;
-        pageProgress.lang = lang;
-        pageProgress.theme = theme;
-        pageProgress._isComplete = false;
-        if (contentObject.get('completedChildrenAsPercentage')) {
-          localProgress = contentObject.get('completedChildrenAsPercentage');
-          if (localProgress > 10 && !pageProgress.startTime) {
-            pageProgress.startTime = new Date();
-            pageProgress.progress = localProgress;
-          }
-          if (localProgress > 99) {
-            pageProgress.endTime = new Date();
-            pageProgress.progress = 100;
-            pageProgress._isComplete = true;
-          }
-          pageProgress.progress = contentObject.get('completedChildrenAsPercentage');
-          if (contentPageID) {
-            this._data.progress[contentPageID] = pageProgress;
-          }
-          
-          //localStorage.setItem('progress',JSON.stringify(progressObject));
-        }
-        if (contentPageID) {
-          this._state.progress[contentPageID] = pageProgress;
-        }
-      }, this);
-      _.each(Adapt.blocks.models, function(block) {
-        this._state.blocks[block.get('_id')] = block.get('_isComplete');
-      }, this);
-      _.each(Adapt.components.models, function(component) {
-        contentPageID = component.getParent().getParent().getParent().get('_trackingHub')._pageID || component.getParent().getParent().getParent().get('_id');
-
-        this._state.components[component.get('_id')]=component.get('_isComplete');
-        if (contentPageID && component.get('_userAnswer')) {
-          this._state.answers[component.get('_id')] = {};
-          this._state.answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
-          this._state.answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
-          this._state.progress[contentPageID].answers = this._state.progress[contentPageID].answers || {};
-          this._state.progress[contentPageID].answers[component.get('_id')] = {};
-          this._state.progress[contentPageID].answers[component.get('_id')]._userAnswer = component.get('_userAnswer');
-          this._state.progress[contentPageID].answers[component.get('_id')]._isCorrect = component.get('_isCorrect');
-          if (!this._state.progress[contentPageID].answers._assessmentState) {
-            this._state.progress[contentPageID].answers._assessmentState = "Not Attempted";
-          }
-          if (component.get('_isCorrect') == false) {
-            this._state.progress[contentPageID].answers._assessmentState = "Failed";  
-          } else if (component.get('_isCorrect') == true && this._state.progress[contentPageID].answers._assessmentState != "Failed") {
-            this._state.progress[contentPageID].answers._assessmentState = "Passed";
-          }
-          if (component.get('_userAnswer').length < 1) {
-            this._state.progress[contentPageID].answers._assessmentState = "Incomplete";  
-          }
-        }
-      }, this);
-    },
-  
     saveState: function() {
-      this.updateState();
+      // TODO: implement configurable functionality to throttle saving somehow, that is, save only once every X times this function is called...
       _.each(this._channels, function(channel) {
         if (channel._saveStateIsEnabled) {
           this._transport_handlers[channel._transport._handlerName].saveState(this._state, channel, this._config._courseID);
         }
       }, this);
     }, 
-  
-    loadState: function() {
-      var stateSourceChnl = null;
-      var handlerName = null;
-      var state = null;
-  
-      _.each(this._channels, function(channel) {
-        if (channel._isStateSource) {
-          stateSourceChnl = channel;
-        }
-      }, this);
-      if (stateSourceChnl) {
-        handlerName = stateSourceChnl._transport._handlerName;
-        state = this._transport_handlers[handlerName].loadState(stateSourceChnl,this._config._courseID);
-      }
-      if (state) {
-        this._data.progress = state.progress;
-        this._data.user = state.user;
-        //localStorage.setItem('progress',JSON.stringify(state.progress));
-        //localStorage.setItem('user',JSON.stringify(state.user));
-        _.each(Adapt.blocks.models, function(targetBlock) {
-          targetBlock.set('_isComplete', state.blocks[targetBlock.get('_id')]);
-        });
-  
-        _.each(Adapt.components.models, function(targetComponent) {
-          targetComponent.set('_isComplete', state.components[targetComponent.get('_id')]);
-          answers = state.answers[targetComponent.get('_id')] || false;
-          if (answers) {
-            if (answers._userAnswer.length > 0) {
-              targetComponent.set('_userAnswer', state.answers[targetComponent.get('_id')]._userAnswer);
-              targetComponent.set('_isCorrect', state.answers[targetComponent.get('_id')]._isCorrect);
-              targetComponent.set('_isSubmitted', true);
-              targetComponent.set('_isInteractionComplete', true);
-            }
-            //targetComponent.restoreUserAnswers();
-            //targetComponent.updateButtons();
-          }
-        });
-      };
-      this.updateState();
+
+    getValidFunctionName: function (eventSourceName, eventName) {
+      return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
     },
 
-    focus_check: function() {
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      last_user_interaction = undefined;   
-      if (pageTimes.last_user_interaction) {
-          last_user_interaction = new Date(pageTimes.last_user_interaction)
-      }
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time)
-      }
-      if (last_user_interaction != undefined) {
-        var curr_time = new Date();
-        if((curr_time.getTime() - last_user_interaction.getTime()) > (20 * 1000) && start_focus_time != undefined) {
-            this.window_unfocused();
-        }
-      }
-    },
-
-    window_focused: function() {
-      pageID = this._data.currentPage;
-      if (pageID == null || !pageID) {
-        return;
-      }
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      if (!pageTimes.start_focus_time) {
-        pageTimes.start_focus_time = new Date();
-      }
-      pageTimes.last_user_interaction = new Date();
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
-    },
-
-    window_unfocused: function() {
-      pageID = this._data.currentPage;
-      sessionTimes = this._data.sessionTimes || {};
-      //sessionTimes = $.parseJSON(localStorage.getItem('sessionTimes')) || {};
-      pageTimes = sessionTimes[pageID] || {};
-      start_focus_time = undefined;
-      if (pageTimes.start_focus_time) {
-        start_focus_time = new Date(pageTimes.start_focus_time);
-      }
-      total_focus_time = pageTimes.sessionTime || 0;
-      if (start_focus_time != undefined) {
-        var stop_focus_time = new Date();
-        var to_add = stop_focus_time.getTime() - start_focus_time.getTime();
-        to_add = Math.round(to_add / 1000);
-        var total = total_focus_time + to_add;
-        pageTimes.sessionTime = total;
-        pageTimes.start_focus_time = stop_focus_time;
-      }
-      sessionTimes[pageID] = pageTimes;
-      this._data.sessionTimes = sessionTimes;
-      //localStorage.setItem('sessionTimes',JSON.stringify(sessionTimes));
-    },
-  
     onDocumentVisibilityChange: function() {
       // Use visibilitystate instead of unload or beforeunload. It's more reliable.
-      // See:
-      // https://www.igvita.com/2015/11/20/dont-lose-user-and-app-state-use-page-visibility/
-  
+      // See: // https://www.igvita.com/2015/11/20/dont-lose-user-and-app-state-use-page-visibility/
+
       if (document.visibilityState == "hidden") {
-        this.window_unfocused();
         this.saveState();
       };
-    
+
       if (document.visibilityState == "visible") {
-        this.window_focused();
         //this.loadState();
       };
-       
+
       $(document).off("visibilitychange", this._onDocumentVisibilityChange);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
     }
   }, Backbone.Events);
-  
+
   TrackingHub.initialize();
   return (TrackingHub);
 });
