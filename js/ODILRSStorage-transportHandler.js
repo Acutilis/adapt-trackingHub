@@ -93,6 +93,7 @@ define([
       // In this TransportHandler the only thing to do in the launch sequence is to get the userID from localStorage
       // and if there's no userID, get one from the server.
       // is there a userID specified in the query string? if so, THAT is the user whose state we must loada
+      console.log('odilrs: starting launch sequence...');
       var userID = null;
       var queryUserID = this._THUB.queryString().id;
       if (queryUserID) {

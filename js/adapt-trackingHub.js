@@ -125,7 +125,7 @@ define([
 
     onDataReady: function() {
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
-      console.log('Starting launch sequence...');
+      console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
           var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
           this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
@@ -316,6 +316,7 @@ define([
     },
 
     getComposerFromComposerName: function (cname) {
+      // TODO: careful here, maybe check existence first!
       return (this._message_composers[cname]);
     },
 
@@ -342,7 +343,7 @@ define([
     saveState: function() {
       // TODO: implement configurable functionality to throttle saving somehow, that is, save only once every X times this function is called...
       _.each(this._channels, function(channel) {
-        if (channel._saveStateIsEnabled) {
+        if (channel._isStateStore) {
           this._transport_handlers[channel._transport._handlerName].saveState(this._state, channel, this._config._courseID);
         }
       }, this);
