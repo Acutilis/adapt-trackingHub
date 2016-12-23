@@ -56,24 +56,11 @@ define([
     /*******************************************/
 
     startLaunchSequence: function() {
-      // In a real-life scenario, this channelHandler should not be launchManager... but we implement some basic 'launch' functionality 
-      // for when only the default trackingHub functionality is used.
-      // This launch sequence is:
-      //    - If there's a userID on localStorage, use that, otherwise:
-      //        - delete locaStorage with key thstate_<COURSEID> if it exists, that's where we will store state
-      //        - generate a random userID, place it in localStorage, and use that
+      // This default channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
+      // This handler stores the state in localStorage. There's no need to manage userIDs or anything like that
+      // If this channel is used along other channel who store the state, the other channel will normally be the launch manager
+      // and will take care of identifying the user.
       console.log('defaultChannelHandler: starting launch sequence...');
-      var userID = null;
-      var queryUserID = this._THUB.queryString().id;
-      if (queryUserID) {
-        userID = queryUserID;
-      } else {
-        userID = localStorage.getItem('UserID');
-      }
-      if (!userID) {
-          userID = this._THUB.genUUID() 
-      }
-      localStorage.setItem('UserID', userID);
       console.log('defaultChannelHandler: launch sequence finished');
       this.trigger('launchSequenceFinished');
     },
@@ -172,15 +159,16 @@ define([
       var localState = this._OWNSTATE;
       // Walk through all components, and update its '_' attributes with what ther is in localState.
       // process each item in localState, which is a component
-      _.each(Adapt.components.models, function(component) {
-        var componentID = component.get('_id');
-        var stateAtts = localState[componentID];
-        _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
-            component.set(key, value);
-        }, this);
-      }, this);
-      console.log('defaultChannelHandler state applied to structure...');
-
+      if (localState) {
+          _.each(Adapt.components.models, function(component) {
+            var componentID = component.get('_id');
+            var stateAtts = localState[componentID];
+            _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
+                component.set(key, value);
+            }, this);
+          }, this);
+          console.log('defaultChannelHandler state applied to structure...');
+      }
     },
 
     /*******  END STATE MANAGEMENT FUNCTIONS ********/
