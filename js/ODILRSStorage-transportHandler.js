@@ -62,6 +62,7 @@ define([
       });
     },
 
+    /*
     queryString: function() {
       // This function is anonymous, is executed immediately and 
       // the return value is assigned to QueryString!
@@ -82,7 +83,7 @@ define([
       } 
       return query_string;
     },
-
+*/
 
     /*******************************************
     /*******  LAUNCH SEQUENCE  FUNCTIONS *******
@@ -92,8 +93,9 @@ define([
       // In this TransportHandler the only thing to do in the launch sequence is to get the userID from localStorage
       // and if there's no userID, get one from the server.
       // is there a userID specified in the query string? if so, THAT is the user whose state we must loada
+      console.log('odilrs: starting launch sequence...');
       var userID = null;
-      var queryUserID = this.queryString().id;
+      var queryUserID = this._THUB.queryString().id;
       if (queryUserID) {
         userID = queryUserID;
       } else {
@@ -287,11 +289,12 @@ define([
                         // update Adapt object based on  state representation (answers and progress)
                         if (component.get('_userAnswer')) {
                             // answers
-                            component.set('_userAnswer', state.answers[componentID]._userAnswer);
-                            component.set('_isCorrect', state.answers[componentID]._isCorrect);
-                            // progress.answers
-                            component.set('_userAnswer', state.progress[contentPageID].answers[componentID]._userAnswer);
-                            component.set('_isCorrect', state.progress[contentPageID].answers[componentID]._isCorrect);
+                            if (_.has(state.answers[componentID],'_userAnswer')) {
+                                component.set('_userAnswer', state.answers[componentID]._userAnswer);
+                            }
+                            if (_.has(state.answers[componentID],'_isCorrect')) {
+                                component.set('_isCorrect', state.answers[componentID]._isCorrect);
+                            }
                         }
                     }, this);
                 }, this);
@@ -304,13 +307,16 @@ define([
 
     /*******  END STATE MANAGEMENT FUNCTIONS ********/
 
+
+
     periodicSessionTimeUpdate: function() {
       // This function gets called periodically (every 3 seconds) so we can update the cumulative
       // time that a user spends in a page (even if the user is not doing anything).
       // this function is similar to updateCurrentlyShownPageData but it's not the same!
       if (this._currentlyShownPage) {
-          var currrentlyShownPageID = this._currentlyShownPage.get('_id');
-          var cspProgressObj = this._THUB._state.progress[currrentlyShownPageID];  //  displayedprogress object in _state
+          var currentlyShownPageID = this._currentlyShownPage.get('_id');
+          // var cspProgressObj = this._THUB._state.progress[currentlyShownPageID];  //  displayedprogress object in _state
+          var cspProgressObj = this._OWNSTATE.progress[currentlyShownPageID];  //  displayedprogress object in _state
           var lastPeriodicUpdateValue = this._currentlyShownPage.get('odilrs_lastPeriodicUpdate') || 0;
           var rightNow = new Date(); 
           var timeDelta = rightNow - lastPeriodicUpdateValue;
@@ -326,7 +332,8 @@ define([
           // the 'currentlyShownPage' is the one the user has left
           // all we need to do is update the cumulative time it was displayed
           var currentlyShownPageID = this._currentlyShownPage.get('_id');
-          var cspProgressObj = this._THUB._state.progress[currentlyShownPageID]; 
+          //var cspProgressObj = this._THUB._state.progress[currentlyShownPageID]; 
+          var cspProgressObj = this._OWNSTATE.progress[currentlyShownPageID]; 
           // let's be a bit more verbose to be clearer
           var timeCurrentlyShownPageLostFocus = new Date(); // right now
           var timeCurrentlyShownPageGainedFocus = this._currentlyShownPage.get('odilrs_startFocusTime');
