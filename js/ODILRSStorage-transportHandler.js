@@ -103,8 +103,6 @@ define([
       if (!userID) {
           var userID = this.getUserID(); 
           localStorage.setItem('UserID', userID);
-//          state = this.initializeState(newUserID);
- //         console.log('odilrs: state ready');
       }
       console.log('odilrs: launch sequence finished');
       this.trigger('launchSequenceFinished');
@@ -121,9 +119,9 @@ define([
     initializeState: function(newUserID) {
         // Initializes our own state representation. That would be: state.odilrsstorage
         // data structure as explained in https://github.com/Acutilis/adapt-trackingHub/pull/1/commits/36ee60afa0385e7d5dbcdcd6c50bd81f06fc98cf
-        var fullState = {};
         // state is 'own' state ... the part that this channel handler cares about.
-        var state =  { "_id": null, "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
+        var localState =  { "_id": null, "blocks": {}, "components": {}, "answers": {}, "progress": {}, "user": {} }
+        var state = localState;
 
         var lang = Adapt.config.get('_activeLanguage');
         // init user
@@ -181,8 +179,7 @@ define([
             }, this);
         }, this);
 
-        fullState[this._OWNSTATEKEY] = state
-        return fullState;
+        return localState;
     },
 
     onStateReady: function() {
@@ -242,20 +239,25 @@ define([
     },
 
     onStateLoadSuccess: function(responseText) {
-       var state = $.parseJSON(responseText);
+       var fullState = $.parseJSON(responseText);
        var userID = localStorage.getItem('UserID');
-       if (!state || state == {} ) {
-           state = this.initializeState(userID);
+       if (!fullState || fullState == {} ) {
+           var localState = this.initializeState(userID);
+           fullState = {}
+           fullState[this._OWNSTATEKEY] = localState;
        }
        console.log('odilrs: state loaded');
-       this.trigger('stateLoaded', state);
+       this.trigger('stateLoaded', fullState);
     },
 
     onStateLoadError: function(xhr, ajaxOptions, thrownError) {
        console.log("LRS load failed " + thrownError);
        var newUserID = this.getUserID(); 
-       var state = this.initializeState(newUserID);
+       var fullState = {};
+       var localState = this.initializeState(newUserID);
+       fullState[this._OWNSTATEKEY] = localState;
        console.log('odilrs: state ready');
+       this.trigger('stateLoaded', fullState);
     },
 
     applyStateToStructure: function() {
