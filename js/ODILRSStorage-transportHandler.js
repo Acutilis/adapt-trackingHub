@@ -140,8 +140,8 @@ define([
             state.progress[contentPageID].startTime = null;
             state.progress[contentPageID].endTime = null;
             state.progress[contentPageID].sessionTime = null;
-            state.progress[contentPageID].courseID = null;
-            state.progress[contentPageID].theme = null;
+            state.progress[contentPageID].courseID = this._THUB._config._courseID;
+            state.progress[contentPageID].theme = theme;  // theme is a global... hhhmmm
             state.progress[contentPageID].progress = 0;
 
             _.each(contentPage.get('_children').models, function(article) {
