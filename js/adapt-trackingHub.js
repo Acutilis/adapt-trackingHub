@@ -3,12 +3,12 @@ var theme="ODI";
 define([
   'coreJS/adapt',
   './string-messageComposer',
-  './localStorage-transportHandler',
+  './default-channelHandler',
   './ODILRSStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, localStorageTransportHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, defaultChannelHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -53,7 +53,7 @@ define([
       this.addMessageComposer(stringMessageComposer);
       this.addMessageComposer(xapiMessageComposer);
       this.addTransportHandler(xapiTransportHandler);
-      this.addTransportHandler(localStorageTransportHandler);
+      this.addTransportHandler(defaultChannelHandler);
       // the ODILRSStorageTH was added by @davetaz. This will not be here.
       this.addTransportHandler(ODILRSStorageTransportHandler);
 
@@ -135,6 +135,53 @@ define([
           this.onLaunchSequenceFinished();
       }
     },
+
+
+    /*******************************************
+    /******* GENERAL  UTILITY  FUNCTIONS *******
+    /*******************************************/
+
+
+    queryString: function() {
+      // This function is anonymous, is executed immediately and 
+      // the return value is assigned to QueryString!
+      var query_string = {};
+      var query = window.location.search.substring(1);
+      var vars = query.split("&");
+      for (var i=0;i<vars.length;i++) {
+        var pair = vars[i].split("=");
+        if (typeof query_string[pair[0]] === "undefined") {
+          query_string[pair[0]] = decodeURIComponent(pair[1]);
+        } else if (typeof query_string[pair[0]] === "string") {
+          var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+          query_string[pair[0]] = arr;
+        // If third or later entry with this name
+        } else {
+          query_string[pair[0]].push(decodeURIComponent(pair[1]));
+        }
+      } 
+      return query_string;
+    },
+
+    /*!
+    Excerpt from: Math.uuid.js (v1.4)
+    http://www.broofa.com
+    mailto:robert@broofa.com
+    Copyright (c) 2010 Robert Kieffer
+    Dual licensed under the MIT and GPL licenses.
+    */
+    genUUID: function() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                return v.toString(16);
+        });
+    },
+
+
+    /*******  END GENERAL UTILITY FUNCTIONS *******/
+
+
+
 
     /*******************************************
     /******* STATE MANAGEMENT  FUNCTIONS *******
