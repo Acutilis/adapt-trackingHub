@@ -1,13 +1,8 @@
-// Careful... setting global variable because the ODI setup needs it...
-var theme="ODI";
 define([
   'coreJS/adapt',
   './string-messageComposer',
   './default-channelHandler',
-  './xapi/xapi-manager',
-  './xapi/xapi-messageComposer',
-  './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, defaultChannelHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, defaultChannelHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -21,7 +16,6 @@ define([
     _launchManagerChannel: null,
     _stateSourceChannel: null,
     _stateStoreChannel: null,
-    _xapiManager: xapiManager,
 
     // Basic, default tracked messages
     _TRACKED_MSGS: {
@@ -46,23 +40,16 @@ define([
     },
 
     initialize: function() {
-      this.sessionID = this.genUUID();
-      xapiManager.registration = this.sessionID;
+      //this.sessionID = this.genUUID();
 
       this.addMessageComposer(stringMessageComposer);
-      // 2 next lines commented out... I'll extirpate xapi stuff from here!
-      //this.addMessageComposer(xapiMessageComposer);
-      //this.addTransportHandler(xapiTransportHandler);
       // Need to manually set a reference to this (trackingHub) in the defaultChannelHandler because I can't use circular refs with
       // the module loader... the defaultCH is especial because it's loaded directly by trackingHub
       defaultChannelHandler.trackingHub = this;
       this.addTransportHandler(defaultChannelHandler);
-      // the ODILRSStorageTH was added by @davetaz. This will not be here.
-      //this.addTransportHandler(ODILRSStorageTransportHandler);
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
-      //this.listenToOnce(Adapt, 'adapt:initialize', this.onAdaptInitialize);
       this.listenToOnce(this, 'allChannelHandlersLoaded', this.onAllChannelHandlersLoaded);
     },
 
@@ -73,33 +60,17 @@ define([
 
     onConfigLoaded: function() {
       // just add the defined channels to trackingHub
-      var isXapiChannel;
 
-      console.log('RUNNING ONcONFIGlOADED!!');
       if (!this.checkConfig())
         return;
-      xapiManager.courseID = this._config._courseID;  
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
           if (channel._isLaunchManager) { this._launchManagerChannel = channel };
           if (channel._isStateSource) { this._stateSourceChannel = channel };
           if (channel._isStateStore) { this._stateStoreChannel = channel };
-          isXapiChannel = (channel._msgComposerName.indexOf('xapi') == 0) ||
-            (channel._transport._handlerName.indexOf('xapi') == 0);
-          if (isXapiChannel) {
-            xapiManager.addXapiChannel(channel);
-          }
         }
       }, this);
-    //this.checkChannelHandlersLoaded();
-    // cycle through this._channels, which is the list of enabled channels,
-    // and add their corresponding transports and messageComposers.
-    //_.each(this._channels, function addAndInitHandler(channel) {
-    //    var th = this.getTransportHandlerFromTransportHandlerName(channel._transport._handlerName);
-    //    this.addTransportHandler(th)
-    //}, this);
-    // this.onAllChannelsReady();
     },
 
 
@@ -117,10 +88,8 @@ define([
     checkChannelConfig: function(channel) {
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
-      channel._xapiData = channel._xapiData || {};
 
-      // new condition: _msgComposerName is optional . Review requiredness or not of config elements.
-      if ((_.isArray(channel._ignoreEvents)) && (_.isObject(channel._xapiData)) &&
+      if ((_.isArray(channel._ignoreEvents)) && 
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
           !_.isEmpty(channel._name) ) &&
@@ -131,28 +100,13 @@ define([
         return  true;
       }
 
-      console.log('trackingHub Error: Channel specification is wrong in config.');
+      console.log('trackingHub Error: Channel configuration for channel ' + channel._name + ' is wrong.');
       return false;
     },
 
     /*******  END CONFIG FUNCTIONS *******/
 
-/*
-    onDataReady: function() {
-      // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
-      console.log('trackingHub: starting launch sequence...');
-      if (this._launchManagerChannel) {
-          //var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
-          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
-          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
-          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
-      } else {
-          // just call the function directly, as if the launch sequence had really finished.
-          this.onLaunchSequenceFinished();
-      }
-    },
-*/
-    //onAllChannelsReady: function() {
+
     onDataReady: function() {
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
