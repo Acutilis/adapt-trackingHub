@@ -4,11 +4,9 @@ define([
   'coreJS/adapt',
   './string-messageComposer',
   './default-channelHandler',
-//  './ODILRSStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-//], function(Adapt, stringMessageComposer, defaultChannelHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 ], function(Adapt, stringMessageComposer, defaultChannelHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
@@ -48,18 +46,24 @@ define([
     },
 
     initialize: function() {
-      this.sessionID = ADL.ruuid();
+      this.sessionID = this.genUUID();
       xapiManager.registration = this.sessionID;
 
       this.addMessageComposer(stringMessageComposer);
-      this.addMessageComposer(xapiMessageComposer);
-      this.addTransportHandler(xapiTransportHandler);
+      // 2 next lines commented out... I'll extirpate xapi stuff from here!
+      //this.addMessageComposer(xapiMessageComposer);
+      //this.addTransportHandler(xapiTransportHandler);
+      // Need to manually set a reference to this (trackingHub) in the defaultChannelHandler because I can't use circular refs with
+      // the module loader... the defaultCH is especial because it's loaded directly by trackingHub
+      defaultChannelHandler.trackingHub = this;
       this.addTransportHandler(defaultChannelHandler);
       // the ODILRSStorageTH was added by @davetaz. This will not be here.
       //this.addTransportHandler(ODILRSStorageTransportHandler);
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
+      //this.listenToOnce(Adapt, 'adapt:initialize', this.onAdaptInitialize);
+      this.listenToOnce(this, 'allChannelHandlersLoaded', this.onAllChannelHandlersLoaded);
     },
 
 
@@ -71,6 +75,7 @@ define([
       // just add the defined channels to trackingHub
       var isXapiChannel;
 
+      console.log('RUNNING ONcONFIGlOADED!!');
       if (!this.checkConfig())
         return;
       xapiManager.courseID = this._config._courseID;  
@@ -87,14 +92,23 @@ define([
           }
         }
       }, this);
+    //this.checkChannelHandlersLoaded();
+    // cycle through this._channels, which is the list of enabled channels,
+    // and add their corresponding transports and messageComposers.
+    //_.each(this._channels, function addAndInitHandler(channel) {
+    //    var th = this.getTransportHandlerFromTransportHandlerName(channel._transport._handlerName);
+    //    this.addTransportHandler(th)
+    //}, this);
+    // this.onAllChannelsReady();
     },
+
 
     checkConfig: function() {
       this._config = Adapt.config.has('_trackingHub') 
         ? Adapt.config.get('_trackingHub')
         : false;
       if (this._config && this._config._isEnabled !== false) {
-        this._config._courseID = this._config._courseID || ADL.ruuid();
+        this._config._courseID = this._config._courseID || this.genUUDI();
         return true;
       }
       return false;
@@ -123,11 +137,27 @@ define([
 
     /*******  END CONFIG FUNCTIONS *******/
 
-
+/*
     onDataReady: function() {
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
+          //var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
+          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
+          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
+          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
+      } else {
+          // just call the function directly, as if the launch sequence had really finished.
+          this.onLaunchSequenceFinished();
+      }
+    },
+*/
+    //onAllChannelsReady: function() {
+    onDataReady: function() {
+      // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
+      console.log('trackingHub: starting launch sequence...');
+      if (this._launchManagerChannel) {
+          //var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
           var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
           this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
           transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
@@ -137,11 +167,19 @@ define([
       }
     },
 
-
     /*******************************************
     /******* GENERAL  UTILITY  FUNCTIONS *******
     /*******************************************/
 
+    checkChannelHandlersLoaded: function() {
+        // if this_transportHandlers have all the keys that are in this._channelHandlersToLoad
+        // then all are loaded, and we can trigger the event.
+        var chsloaded = _.keys(this._transport_handlers);
+        if (!_.isEqual(chsloaded,[]) && _.isEqual(chsloaded, this._channelHandlersToLoad)) {
+            console.log('ALL CHANNEL HANDLERS LOADED');
+            this.trigger('allChannelHandlersLoaded');
+        }
+    },
 
     queryString: function() {
       // This function is anonymous, is executed immediately and 
@@ -336,9 +374,12 @@ define([
       this._transport_handlers[th['_NAME']] = th;
       // @jpablo128 addition: call the THandler's  'initialize' function if it exists
       th._THUB = this;
+      /*
       if (th.initialize) {
           th.initialize();
       }
+     */ 
+      this.checkChannelHandlersLoaded();
     },
 
     saveState: function() {
