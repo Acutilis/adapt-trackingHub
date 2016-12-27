@@ -5,7 +5,8 @@ define([
 
   var DefaultChannelHandler = _.extend({
 
-    _THUB: null,  // this will be set to the trackingHub module once this transportHandler is added.
+//    _THUB: null,  // this will be set to the this.trackingHub module once this transportHandler is added.
+    trackingHub: null,
     _NAME: 'defaultChannelHandler',
     _OWNSTATEKEY: 'basic',
     _OWNSTATE: null,
@@ -13,7 +14,7 @@ define([
 
     initialize: function() {
       console.log('Initializing ' + this._NAME);
-      this.listenToOnce(this._THUB, 'stateReady', this.onStateReady);
+      this.listenToOnce(this.trackingHub, 'stateReady', this.onStateReady);
     },
 
     processEvent: function(channel, eventSourceName, eventName, args) {
@@ -26,7 +27,7 @@ define([
       var message = null;
 
       // deliver the message
-      composer = this._THUB.getComposerFromComposerName(channel._msgComposerName);
+      composer = this.trackingHub.getComposerFromComposerName(channel._msgComposerName);
       if (composer) {
           message = composer.compose(eventSourceName, eventName, args);
       }
@@ -37,7 +38,7 @@ define([
       // do common processing for all events:
       this.updateState();
       // call specific event handling function, if it exists 
-      funcName = this._THUB.getValidFunctionName(eventSourceName, eventName);
+      funcName = this.trackingHub.getValidFunctionName(eventSourceName, eventName);
       // console.log('funcName = ' + funcName);
       // We only need to write event handling functions for the events that we care about
       // see "Specific event processing functions" section below
@@ -81,14 +82,14 @@ define([
     },
 
     onStateReady: function() {
-      this._OWNSTATE = this._THUB._state[this._OWNSTATEKEY]; // the part of state that THIS transportHandler manages...
+      this._OWNSTATE = this.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS transportHandler manages...
     },
 
     updateState: function() {
       // In this CH, a function to update the whole state at once is useful because we're going to have to do this constantly.
       // This representation is just a 'snapshot' of some attributes of all the components
       this._OWNSTATE = this.getUpdatedLocalState();
-      this._THUB._state[this._OWNSTATEKEY] = this._OWNSTATE ;
+      this.trackingHub._state[this._OWNSTATEKEY] = this._OWNSTATE ;
     },
 
     getUpdatedLocalState: function() {
@@ -135,8 +136,8 @@ define([
 
     saveState: function(state, channel, courseID) {
       // IF we want this channelHandler to be  capable of saving state, we have to implement this function.
-      // THIS FUNCTION is always called from trackingHub NOT FROM WITHIN THIS CHANNEL HANDLER!
-      localStorage.setItem('state_'+ courseID, JSON.stringify(this._THUB._state));
+      // THIS FUNCTION is always called from this.trackingHub NOT FROM WITHIN THIS CHANNEL HANDLER!
+      localStorage.setItem('state_'+ courseID, JSON.stringify(this.trackingHub._state));
       //Adapt.trigger('defaultChannelHandler:saveStateSucceded');
       console.log('defaultChannelHandler: state saved');
     },
@@ -183,6 +184,7 @@ define([
     /*******  END SPECIFIC EVENT PROCESSING FUNCTIONS ********/
 
   }, Backbone.Events);
-
+  
+  DefaultChannelHandler.initialize();
   return (DefaultChannelHandler);
 });
