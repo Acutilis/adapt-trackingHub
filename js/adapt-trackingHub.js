@@ -4,11 +4,12 @@ define([
   'coreJS/adapt',
   './string-messageComposer',
   './default-channelHandler',
-  './ODILRSStorage-transportHandler',
+//  './ODILRSStorage-transportHandler',
   './xapi/xapi-manager',
   './xapi/xapi-messageComposer',
   './xapi/xapi-transportHandler'
-], function(Adapt, stringMessageComposer, defaultChannelHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+//], function(Adapt, stringMessageComposer, defaultChannelHandler, ODILRSStorageTransportHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
+], function(Adapt, stringMessageComposer, defaultChannelHandler, xapiManager, xapiMessageComposer, xapiTransportHandler ) {
 
     var TrackingHub = _.extend({
 
@@ -55,7 +56,7 @@ define([
       this.addTransportHandler(xapiTransportHandler);
       this.addTransportHandler(defaultChannelHandler);
       // the ODILRSStorageTH was added by @davetaz. This will not be here.
-      this.addTransportHandler(ODILRSStorageTransportHandler);
+      //this.addTransportHandler(ODILRSStorageTransportHandler);
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
