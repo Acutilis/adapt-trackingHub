@@ -1,0 +1,162 @@
+define(function() {
+
+  var DefaultMessageComposer = _.extend({
+
+    _NAME: 'defaultMessageComposer',
+
+    baseMessage: {
+      composer: 'defaultMC_v1.0',
+      timestamp: null,
+      actor: null,  // this, I don't know!!!
+      verb: null,
+      object: null,
+      objType: null, 
+      eventInfo: null,
+      text: '',
+      extraData: null,
+    },
+
+    compose: function (eventSourceName, eventName, args) {
+      var funcName = this.trackingHub.getValidFunctionName(eventSourceName, eventName);
+      if (this.hasOwnProperty(funcName)) {
+        var eventInfo = {};
+        _.extend(eventInfo, {
+          eventSourceName: eventSourceName,
+          eventName: eventName,
+          functionName: funcName
+        });
+        // first, create a message object with the specific data items corresponding to this event
+        var message = this[funcName](args);
+        // then, fill out the rest of the data items in the message, which are common to all messages
+        message.timestamp =  new Date(Date.now()).toISOString();
+        message.eventInfo = eventInfo;
+      } else {
+          var message = _.clone(this.baseMessage);
+          message.text = '<<Composing function for ' + funcName + ' not implemented>>';
+      }
+      return (message);
+    },
+
+    addCustomComposingFunction: function(eventSourceName, eventName, func) {
+      funcName = this.getValidFunctionName(eventSourceName, eventName);
+      this[funcName] = func;
+    },
+
+
+    /*******************************************/
+    /*****  Specific composing functions   *****/
+    /*******************************************/
+
+    Adapt_navigationView_preRender: function (args) {
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'started';
+      message.object = this.trackingHub._config._courseID; // args.get('_id');
+      message.objType = 'course';
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return(message);
+    },
+
+    Adapt_router_menu: function (args) {
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'visited';
+      message.object = args.get('_id');
+      message.objType = 'menu';
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return (message);
+    },
+
+    Adapt_router_page: function (args) {
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'visited';
+      message.object = args.get('_id');  // TODO: here and all othern: use title instead of _id
+      message.objType = args.get('_type');
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return (message);
+    },
+
+    components_change__isComplete: function (args) {
+      //  return ("completed interaction " + args.get('_id'));
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'completed';
+      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.objType = args.get('_type');
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      if (args.get('_isQuestionType')) {
+        message.extraData = {};
+        var attribsToCopy = [ '_attempts', '_attemptsLeft', '_component', '_questionWeight', 
+            '_score', '_selectedItems', '_userAnswer', '_isCorrect', '_isOptional',
+            '_numberOfCorrectAnswers', '_numberOfRequiredAnswers'];
+        _.each(attribsToCopy, function(att) {
+            message.extraData[att] = args.get(att);
+        }, this);
+      }
+      return (message);
+    },
+
+
+    Adapt_assessments_complete: function (args) {  // plural
+      // return ("completed assesment " + args.id);
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'completed';
+      message.object = args.id;  // TODO: here and all othern: use title instead of _id
+      message.objType = args.type;
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      message.extraData = {};
+      var attribsToCopy = [ 'assessmentWeight','attempts', 'attemptsLeft', 'attemptsSpent', 'assessmentWeight', 
+          'isPass', 'score', 'maxScore', 'scoreAsPercent', 'scoreToPass'];
+      _.each(attribsToCopy, function(att) {
+          message.extraData[att] = args[att];
+      }, this);
+      return (message);
+    },
+  
+    blocks_change__isComplete: function (args) {
+      // return ("completed block " + args.get('_id'));
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'completed';
+      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.objType = args.get('_type');
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return (message);
+    },
+  
+    contentObjects_change__isComplete: function (args) {
+      // return ("completed block " + args.get('_id'));
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'completed';
+      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.objType = args.get('_type');
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return (message);
+    },
+
+    course_change__isComplete: function (args) {
+      //  return ("completed course " + args.get('_id'));
+      var message = _.clone(this.baseMessage);
+
+      message.actor = this.trackingHub.actorInfo;
+      message.verb = 'completed';
+      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.objType = args.get('_type');
+      message.text = message.verb + ' ' + message.objType + ' ' + message.object;
+      return (message);
+    }
+  }, Backbone.Events);
+
+  return (DefaultMessageComposer);
+
+});
