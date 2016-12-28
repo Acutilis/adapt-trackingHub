@@ -5,7 +5,6 @@ define([
 
   var DefaultChannelHandler = _.extend({
 
-//    _THUB: null,  // this will be set to the this.trackingHub module once this transportHandler is added.
     trackingHub: null,
     _NAME: 'defaultChannelHandler',
     _OWNSTATEKEY: 'basic',
@@ -45,7 +44,7 @@ define([
       if (this.hasOwnProperty(funcName)) {
         this[funcName](args);
       }
-      // the fact that there's no method to handle a specific event is NOT an error, it's simply that this TransportHandler doesn't care  about that event.
+      // the fact that there's no method to handle a specific event is NOT an error, it's simply that this ChanneHandler doesn't care  about that event.
     },
 
     deliver: function(message, channel) {
@@ -82,7 +81,7 @@ define([
     },
 
     onStateReady: function() {
-      this._OWNSTATE = this.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS transportHandler manages...
+      this._OWNSTATE = this.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS channelHandler manages...
     },
 
     updateState: function() {

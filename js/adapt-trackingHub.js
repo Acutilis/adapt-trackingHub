@@ -12,7 +12,7 @@ define([
     _config: null,
     _channels: [],
     _message_composers: {},
-    _transport_handlers: {},
+    _channel_handlers: {},
     _launchManagerChannel: null,
     _stateSourceChannel: null,
     _stateStoreChannel: null,
@@ -46,7 +46,7 @@ define([
       // Need to manually set a reference to this (trackingHub) in the defaultChannelHandler because I can't use circular refs with
       // the module loader... the defaultCH is especial because it's loaded directly by trackingHub
       defaultChannelHandler.trackingHub = this;
-      this.addTransportHandler(defaultChannelHandler);
+      this.addChannelHandler(defaultChannelHandler);
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
@@ -93,10 +93,9 @@ define([
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
           !_.isEmpty(channel._name) ) &&
-        (channel.has('_transport') ) &&
-        (channel._transport.hasOwnProperty('_handlerName') &&
-          _.isString(channel._transport._handlerName) &&
-         !_.isEmpty(channel._transport._handlerName) ) ) {
+        (channel.has('_handlerName') ) &&
+        ( _.isString(channel._handlerName) &&
+         !_.isEmpty(channel._handlerName) ) ) {
         return  true;
       }
 
@@ -111,10 +110,12 @@ define([
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
-          //var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
-          var transportHandler = this._transport_handlers[this._launchManagerChannel._transport._handlerName];
-          this.listenToOnce(transportHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
-          transportHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
+          var channelHandler = this._channel_handlers[this._launchManagerChannel._handlerName];
+          if (! channelHandler) {
+              alert('Please review your configuration file. There seems to be an error in the handler name ' + this._launchManagerChannel._handlerName);
+          }
+          this.listenToOnce(channelHandler, 'launchSequenceFinished', this.onLaunchSequenceFinished);
+          channelHandler.startLaunchSequence(this._launchManagerChannel, this._config._courseID);
       } else {
           // just call the function directly, as if the launch sequence had really finished.
           this.onLaunchSequenceFinished();
@@ -126,9 +127,9 @@ define([
     /*******************************************/
 
     checkChannelHandlersLoaded: function() {
-        // if this_transportHandlers have all the keys that are in this._channelHandlersToLoad
+        // if this_channelHandlers have all the keys that are in this._channelHandlersToLoad
         // then all are loaded, and we can trigger the event.
-        var chsloaded = _.keys(this._transport_handlers);
+        var chsloaded = _.keys(this._channel_handlers);
         if (!_.isEqual(chsloaded,[]) && _.isEqual(chsloaded, this._channelHandlersToLoad)) {
             console.log('ALL CHANNEL HANDLERS LOADED');
             this.trigger('allChannelHandlersLoaded');
@@ -185,10 +186,10 @@ define([
       console.log('launch sequence finished.');
       // once the launch seq is complete, let's attempt to load state, if there's a state source
       if (this._stateSourceChannel) {
-        var transportHandler = this._transport_handlers[this._stateSourceChannel._transport._handlerName];
-        this.listenToOnce(transportHandler, 'stateLoaded', this.onStateLoaded);
+        var channelHandler = this._channel_handlers[this._stateSourceChannel._handlerName];
+        this.listenToOnce(channelHandler, 'stateLoaded', this.onStateLoaded);
         console.log('loading state...');
-        transportHandler.loadState(this._stateSourceChannel, this._config._courseID);
+        channelHandler.loadState(this._stateSourceChannel, this._config._courseID);
       } 
     },
 
@@ -208,10 +209,10 @@ define([
     applyStateToStructure: function() {
         // apply the default state managed by trackingHub
         this.applyTHubStateToStructure(); 
-        // and then call every transport handler (channelHandler) to apply its particular state representation
-        _.each(this._transport_handlers, function(thandler, name, list) {
-            if(thandler.applyStateToStructure) {
-                thandler.applyStateToStructure();
+        // and then call every channel handler (channelHandler) to apply its particular state representation
+        _.each(this._channel_handlers, function(chandler, name, list) {
+            if(chandler.applyStateToStructure) {
+                chandler.applyStateToStructure();
             }
         }, this);
 
@@ -286,11 +287,11 @@ define([
 
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
       // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
-      // SO if every TransportHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
+      // SO if every ChannelHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
       var composer;
-      var thandler;
+      var chandler;
       var message;
-      var transportConfig;
+      var channelConfig;
 
       // TODO: add default processing for events in trackinghub... something like:
       // if (this._config._doDefaultEventProcessing) { this.processEvent(channel, eventSourceName, eventName, args) }
@@ -299,8 +300,8 @@ define([
         // are ignored, and the checking takes more processing than not doing anything.
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
         if ( !isEventIgnored ) {
-          thandler = this.getTransportHandlerFromTransportHandlerName(channel._transport._handlerName);
-          thandler.processEvent(channel, eventSourceName, eventName, args);
+          chandler = this.getChannelHandlerFromChannelHandlerName(channel._handlerName);
+          chandler.processEvent(channel, eventSourceName, eventName, args);
         }
       }, this);
       // At this point in time, trackingHub and all channels have processed (or not) the event, so the whole representation of state is updated.
@@ -313,21 +314,21 @@ define([
       return (this._message_composers[cname]);
     },
 
-    getTransportHandlerFromTransportHandlerName: function (thname) {
-      return (this._transport_handlers[thname]);
+    getChannelHandlerFromChannelHandlerName: function (chname) {
+      return (this._channel_handlers[chname]);
     },
 
-    // *** functions addMessageComposer and addTransportHandler 
+    // *** functions addMessageComposer and addChannelHandler 
     // are here so other extensions (extensions implementing messageComposers and
-    // TransportHandlers) can add themselves to trackingHub
+    // ChannelHandlers) can add themselves to trackingHub
     addMessageComposer: function (mc) {
       this._message_composers[mc['_NAME']] = mc;
     },
 
-    addTransportHandler: function (th) {
-      this._transport_handlers[th['_NAME']] = th;
+    addChannelHandler: function (ch) {
+      this._channel_handlers[ch['_NAME']] = ch;
       // @jpablo128 addition: call the THandler's  'initialize' function if it exists
-      th._THUB = this;
+      ch._THUB = this;
       /*
       if (th.initialize) {
           th.initialize();
@@ -340,7 +341,7 @@ define([
       // TODO: implement configurable functionality to throttle saving somehow, that is, save only once every X times this function is called...
       _.each(this._channels, function(channel) {
         if (channel._isStateStore) {
-          this._transport_handlers[channel._transport._handlerName].saveState(this._state, channel, this._config._courseID);
+          this._channel_handlers[channel._handlerName].saveState(this._state, channel, this._config._courseID);
         }
       }, this);
     }, 
