@@ -48,7 +48,8 @@ define([
     },
 
     deliver: function(message, channel) {
-        console.log('defaultChannelHandler: ' + message);
+        // here show message.text, message
+        console.log('defaultChannelHandler: ', message.text, message);
     },
 
     /*******************************************
@@ -150,6 +151,7 @@ define([
           localState = this.initializeState(userID);
           fullState[this._OWNSTATEKEY] = localState;
       }
+      this._OWNSTATE = fullState[this._OWNSTATEKEY];
       console.log('defaultChannelHandler: state loaded');
       this.trigger('stateLoaded', fullState);
     },

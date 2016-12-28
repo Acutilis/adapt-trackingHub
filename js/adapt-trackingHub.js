@@ -1,13 +1,12 @@
 define([
   'coreJS/adapt',
-  './string-messageComposer',
+  './default-messageComposer',
   './default-channelHandler',
-], function(Adapt, stringMessageComposer, defaultChannelHandler ) {
+], function(Adapt, defaultMessageComposer, defaultChannelHandler ) {
 
     var TrackingHub = _.extend({
 
     _state: {},
-    _OWNSTATEKEY: 'tkhub', // this should be pretty much immutable, once set.
     _sessionID: null,
     _config: null,
     _channels: [],
@@ -23,28 +22,29 @@ define([
         'navigationView:preRender',                    // opened course
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
-        'questionView:complete',
-        'questionView:reset',
+//        'questionView:complete',
+//        'questionView:reset',
         'assessments:complete',
-        'assessments:reset',
-        'questionView:recordInteraction'
+//        'assessments:reset',
+//        'questionView:recordInteraction'
        ],
-       blocks: ['change:_isComplete','change:_isInteractionComplete'],
+//       blocks: ['change:_isComplete','change:_isInteractionComplete'],
+       blocks: ['change:_isComplete'],
        course: ['change:_isComplete'],
-       components: ['change:_isComplete','change:_isInteractionComplete'],
+//       components: ['change:_isComplete','change:_isInteractionComplete'],
+       components: ['change:_isComplete'],
        // I think that these additions by @davetaz should remain in the core trackingHub
-       contentObjects: ['change:_isComplete',
-                        'change:_isInteractionComplete',
-                        'change:_isVisible'
-       ]
+//       contentObjects: ['change:_isComplete', 'change:_isInteractionComplete', 'change:_isVisible' ]
+       contentObjects: ['change:_isComplete', 'change:_isVisible' ]
     },
 
     initialize: function() {
       //this.sessionID = this.genUUID();
 
-      this.addMessageComposer(stringMessageComposer);
-      // Need to manually set a reference to this (trackingHub) in the defaultChannelHandler because I can't use circular refs with
-      // the module loader... the defaultCH is especial because it's loaded directly by trackingHub
+      // Need to manually set a reference to this (trackingHub) in the defaultMessageComposer and defaultChannelHandler because I can't use circular refs with
+      // the module loader... the defaultMC and defaultCH are especial because they're's loaded directly by trackingHub
+      defaultMessageComposer.trackingHub = this;
+      this.addMessageComposer(defaultMessageComposer);
       defaultChannelHandler.trackingHub = this;
       this.addChannelHandler(defaultChannelHandler);
 
