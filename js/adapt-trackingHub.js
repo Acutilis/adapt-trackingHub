@@ -1,10 +1,10 @@
 define([
   'coreJS/adapt',
-  './default-messageComposer',
-  './default-channelHandler',
-], function(Adapt, defaultMessageComposer, defaultChannelHandler ) {
+  './tkhub-defaultChannelHandler',
+], function(Adapt, defaultChannelHandler ) {
 
-    var TrackingHub = _.extend({
+    // OLD DON'T DO THIS: var TrackingHub = _.extend({
+    Adapt.trackingHub = _.extend({
 
     _state: {},
     _sessionID: null,
@@ -367,6 +367,6 @@ define([
     }
   }, Backbone.Events);
 
-  TrackingHub.initialize();
-  return (TrackingHub);
+  Adapt.trackingHub.initialize();
+  return (Adapt.trackingHub);
 });

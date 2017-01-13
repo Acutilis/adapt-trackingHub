@@ -1,11 +1,11 @@
 define([
         'coreJS/adapt',
+        './defaultMessageComposer',
        ],
-       function(Adapt) {
+       function(Adapt, msgComposer) {
 
   var DefaultChannelHandler = _.extend({
 
-    trackingHub: null,
     _NAME: 'defaultChannelHandler',
     _OWNSTATEKEY: 'basic',
     _OWNSTATE: null,
@@ -13,7 +13,7 @@ define([
 
     initialize: function() {
       console.log('Initializing ' + this._NAME);
-      this.listenToOnce(this.trackingHub, 'stateReady', this.onStateReady);
+      this.listenToOnce(Adapt.trackingHub, 'stateReady', this.onStateReady);
     },
 
     processEvent: function(channel, eventSourceName, eventName, args) {
@@ -22,14 +22,9 @@ define([
       //    - compose & deliver the messages (if configured to do so, i.e. there's a composer defined for this channel)
       //    - update our internal state representation
       //    - save state (if configured to do so, i.e. if this channel _isStateStore is true)
-      var composer = null;
-      var message = null;
 
-      // deliver the message
-      composer = this.trackingHub.getComposerFromComposerName(channel._msgComposerName);
-      if (composer) {
-          message = composer.compose(eventSourceName, eventName, args);
-      }
+      // if channel is configured for isEventTracker (default true) then we compose and deliver messages for the events that happen
+      message = msgComposer(eventSourceName, eventName, args)
       if (message) {
           this.deliver(message, channel);
       }
@@ -37,20 +32,17 @@ define([
       // do common processing for all events:
       this.updateState();
       // call specific event handling function, if it exists 
-      funcName = this.trackingHub.getValidFunctionName(eventSourceName, eventName);
+      funcName = Adapt.trackingHub.getValidFunctionName(eventSourceName, eventName);
       // console.log('funcName = ' + funcName);
       // We only need to write event handling functions for the events that we care about
       // see "Specific event processing functions" section below
+      // is
       if (this.hasOwnProperty(funcName)) {
         this[funcName](args);
       }
       // the fact that there's no method to handle a specific event is NOT an error, it's simply that this ChanneHandler doesn't care  about that event.
     },
 
-    deliver: function(message, channel) {
-        // here show message.text, message
-        console.log('defaultChannelHandler: ', message.text, message);
-    },
 
     /*******************************************
     /*******  LAUNCH SEQUENCE  FUNCTIONS *******
@@ -64,6 +56,8 @@ define([
       console.log('defaultChannelHandler: starting launch sequence...');
       console.log('defaultChannelHandler: launch sequence finished');
       this.trigger('launchSequenceFinished');
+
+      // AT THE END OF THE LAUNCH SEQUENCE TRACKINGhUB SHOULD HAVE AN ACTOR property?
     },
 
     /*******  END LAUNCH SEQUENCE FUNCTIONS *******/
@@ -82,14 +76,14 @@ define([
     },
 
     onStateReady: function() {
-      this._OWNSTATE = this.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS channelHandler manages...
+      this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS channelHandler manages...
     },
 
     updateState: function() {
       // In this CH, a function to update the whole state at once is useful because we're going to have to do this constantly.
       // This representation is just a 'snapshot' of some attributes of all the components
       this._OWNSTATE = this.getUpdatedLocalState();
-      this.trackingHub._state[this._OWNSTATEKEY] = this._OWNSTATE ;
+      Adapt.trackingHub._state[this._OWNSTATEKEY] = this._OWNSTATE ;
     },
 
     getUpdatedLocalState: function() {
@@ -136,8 +130,8 @@ define([
 
     saveState: function(state, channel, courseID) {
       // IF we want this channelHandler to be  capable of saving state, we have to implement this function.
-      // THIS FUNCTION is always called from this.trackingHub NOT FROM WITHIN THIS CHANNEL HANDLER!
-      localStorage.setItem('state_'+ courseID, JSON.stringify(this.trackingHub._state));
+      // THIS FUNCTION is always called from trackingHub NOT FROM WITHIN THIS CHANNEL HANDLER!
+      localStorage.setItem('state_'+ courseID, JSON.stringify(Adapt.trackingHub._state));
       //Adapt.trigger('defaultChannelHandler:saveStateSucceded');
       console.log('defaultChannelHandler: state saved');
     },
@@ -176,9 +170,7 @@ define([
     /*******  END STATE MANAGEMENT FUNCTIONS ********/
 
 
-    /**************************************************
-     *****  Specific event processing functions   *****
-     **************************************************/
+
 
     // no need to do any specific event processing in this channel handler.
 
