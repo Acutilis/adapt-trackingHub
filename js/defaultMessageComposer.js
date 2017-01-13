@@ -1,8 +1,7 @@
-define(function() {
+define([ 'coreJS/adapt'
+], function(Adapt) {
 
   var DefaultMessageComposer = _.extend({
-
-    _NAME: 'defaultMessageComposer',
 
     baseMessage: {
       composer: 'defaultMC_v1.0',

@@ -10,7 +10,6 @@ define([
     _sessionID: null,
     _config: null,
     _channels: [],
-    _message_composers: {},
     _channel_handlers: {},
     _launchManagerChannel: null,
     _stateSourceChannel: null,
@@ -22,30 +21,19 @@ define([
         'navigationView:preRender',                    // opened course
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
-//        'questionView:complete',
-//        'questionView:reset',
+        // 'questionView:complete',
+        // 'questionView:reset',
         'assessments:complete',
-//        'assessments:reset',
-//        'questionView:recordInteraction'
+        // 'assessments:reset',
+        // 'questionView:recordInteraction'
        ],
-//       blocks: ['change:_isComplete','change:_isInteractionComplete'],
        blocks: ['change:_isComplete'],
        course: ['change:_isComplete'],
-//       components: ['change:_isComplete','change:_isInteractionComplete'],
        components: ['change:_isComplete'],
-       // I think that these additions by @davetaz should remain in the core trackingHub
-//       contentObjects: ['change:_isComplete', 'change:_isInteractionComplete', 'change:_isVisible' ]
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
     },
 
     initialize: function() {
-      //this.sessionID = this.genUUID();
-
-      // Need to manually set a reference to this (trackingHub) in the defaultMessageComposer and defaultChannelHandler because I can't use circular refs with
-      // the module loader... the defaultMC and defaultCH are especial because they're's loaded directly by trackingHub
-      defaultMessageComposer.trackingHub = this;
-      this.addMessageComposer(defaultMessageComposer);
-      defaultChannelHandler.trackingHub = this;
       this.addChannelHandler(defaultChannelHandler);
 
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
@@ -288,7 +276,6 @@ define([
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
       // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
       // SO if every ChannelHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
-      var composer;
       var chandler;
       var message;
       var channelConfig;
@@ -309,23 +296,14 @@ define([
       this.saveState();
     },
 
-    getComposerFromComposerName: function (cname) {
-      // TODO: careful here, maybe check existence first!
-      return (this._message_composers[cname]);
-    },
 
     getChannelHandlerFromChannelHandlerName: function (chname) {
       return (this._channel_handlers[chname]);
     },
 
-    // *** functions addMessageComposer and addChannelHandler 
-    // are here so other extensions (extensions implementing messageComposers and
-    // ChannelHandlers) can add themselves to trackingHub
-    addMessageComposer: function (mc) {
-      this._message_composers[mc['_NAME']] = mc;
-    },
 
     addChannelHandler: function (ch) {
+      // this function is here so other extensions (implementing ChannelHandlers) can call it to add themselves to trackingHub
       this._channel_handlers[ch['_NAME']] = ch;
       // @jpablo128 addition: call the THandler's  'initialize' function if it exists
       ch._THUB = this;
