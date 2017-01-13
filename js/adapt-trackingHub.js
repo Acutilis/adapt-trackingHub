@@ -6,6 +6,7 @@ define([
     // OLD DON'T DO THIS: var TrackingHub = _.extend({
     Adapt.trackingHub = _.extend({
 
+    _applyingState: false,
     _state: {},
     _sessionID: null,
     _config: null,
@@ -27,7 +28,7 @@ define([
         // 'assessments:reset',
         // 'questionView:recordInteraction'
        ],
-       blocks: ['change:_isComplete'],
+       //blocks: ['change:_isComplete'], // NO I SHOULDN'T TRACK blocks, it causes all kinds of problems! 
        course: ['change:_isComplete'],
        components: ['change:_isComplete'],
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
@@ -36,6 +37,7 @@ define([
     initialize: function() {
       this.addChannelHandler(defaultChannelHandler);
 
+      //  _.bindAll(this,'onSateApplied', 'setupInitialEventListeners');
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
       this.listenToOnce(this, 'allChannelHandlersLoaded', this.onAllChannelHandlersLoaded);
@@ -176,6 +178,7 @@ define([
       if (this._stateSourceChannel) {
         var channelHandler = this._channel_handlers[this._stateSourceChannel._handlerName];
         this.listenToOnce(channelHandler, 'stateLoaded', this.onStateLoaded);
+        //this.listenToOnce(this, 'stateApplied', this.onSateApplied);
         console.log('loading state...');
         channelHandler.loadState(this._stateSourceChannel, this._config._courseID);
       } 
@@ -189,29 +192,18 @@ define([
         this.trigger('stateReady');
         console.log('state ready');
         this.applyStateToStructure();
-        // this should really be:
-        // this._THUB._state[_OWNSTATENAME] = state
         this.setupInitialEventListeners();
     },
 
     applyStateToStructure: function() {
-        // apply the default state managed by trackingHub
-        this.applyTHubStateToStructure(); 
-        // and then call every channel handler (channelHandler) to apply its particular state representation
+        // call every channel handler (channelHandler) to apply its particular state representation
+        this._applyingState = true;
         _.each(this._channel_handlers, function(chandler, name, list) {
             if(chandler.applyStateToStructure) {
                 chandler.applyStateToStructure();
             }
         }, this);
-
-    },
-
-    applyTHubStateToStructure: function() {
-        if (this._state[this._OWNSTATEKEY]) {
-          console.log('applying trakingHub state to structure...');
-          // do stuff
-          console.log('trakingHub state applied to structure.');
-        }
+        this._applyingState = false;
     },
 
 
@@ -220,14 +212,16 @@ define([
 
     setupInitialEventListeners: function() {
       console.log('setting up initial event listeners (for tracked messages)');
-      this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
-      $(document).on("visibilitychange", this._onDocumentVisibilityChange);
-
       _.each(_.keys(this._TRACKED_MSGS), function (eventSourceName) {
         _.each(this._TRACKED_MSGS[eventSourceName], function (eventName) {
           this.addLocalEventListener(eventSourceName, eventName);
+          //_.defer(this.addLocalEventListener, this, eventSourceName, eventName);
         },this);
       },this);
+
+      this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
+      $(document).on("visibilitychange", this._onDocumentVisibilityChange);
+      console.log('FINISHED setting up initial event listeners...');
     },
 
     getObjFromEventSourceName: function (eventSourceName) {
@@ -276,6 +270,8 @@ define([
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
       // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
       // SO if every ChannelHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
+      //
+      if (this._applyingState) { return }; 
       var chandler;
       var message;
       var channelConfig;
@@ -306,7 +302,7 @@ define([
       // this function is here so other extensions (implementing ChannelHandlers) can call it to add themselves to trackingHub
       this._channel_handlers[ch['_NAME']] = ch;
       // @jpablo128 addition: call the THandler's  'initialize' function if it exists
-      ch._THUB = this;
+      //ch._THUB = this;
       /*
       if (th.initialize) {
           th.initialize();
