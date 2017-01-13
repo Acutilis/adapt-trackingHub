@@ -6,7 +6,6 @@ define([ 'coreJS/adapt'
     baseMessage: {
       composer: 'defaultMC_v1.0',
       timestamp: null,
-      actor: null,  // this, I don't know!!!
       verb: null,
       object: null,
       objType: null, 
@@ -49,7 +48,7 @@ define([ 'coreJS/adapt'
     Adapt_navigationView_preRender: function (args) {
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'started';
       message.object = Adapt.trackingHub._config._courseID; // args.get('_id');
       message.objType = 'course';
@@ -60,7 +59,7 @@ define([ 'coreJS/adapt'
     Adapt_router_menu: function (args) {
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'visited';
       message.object = args.get('_id');
       message.objType = 'menu';
@@ -71,7 +70,7 @@ define([ 'coreJS/adapt'
     Adapt_router_page: function (args) {
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'visited';
       message.object = args.get('_id');  // TODO: here and all othern: use title instead of _id
       message.objType = args.get('_type');
@@ -83,7 +82,7 @@ define([ 'coreJS/adapt'
       //  return ("completed interaction " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
       message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
       message.objType = args.get('_type');
@@ -105,7 +104,7 @@ define([ 'coreJS/adapt'
       // return ("completed assesment " + args.id);
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
       message.object = args.id;  // TODO: here and all othern: use title instead of _id
       message.objType = args.type;
@@ -123,7 +122,7 @@ define([ 'coreJS/adapt'
       // return ("completed block " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
       message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
       message.objType = args.get('_type');
@@ -135,7 +134,7 @@ define([ 'coreJS/adapt'
       // return ("completed block " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
       message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
       message.objType = args.get('_type');
@@ -147,7 +146,7 @@ define([ 'coreJS/adapt'
       //  return ("completed course " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
-      message.actor = Adapt.trackingHub.actorInfo;
+      message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
       message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
       message.objType = args.get('_type');

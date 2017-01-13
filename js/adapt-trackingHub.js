@@ -6,7 +6,7 @@ define([
     // OLD DON'T DO THIS: var TrackingHub = _.extend({
     Adapt.trackingHub = _.extend({
 
-    _applyingState: false,
+    userInfo: {},
     _state: {},
     _sessionID: null,
     _config: null,
@@ -197,13 +197,11 @@ define([
 
     applyStateToStructure: function() {
         // call every channel handler (channelHandler) to apply its particular state representation
-        this._applyingState = true;
         _.each(this._channel_handlers, function(chandler, name, list) {
             if(chandler.applyStateToStructure) {
                 chandler.applyStateToStructure();
             }
         }, this);
-        this._applyingState = false;
     },
 
 
@@ -271,7 +269,6 @@ define([
       // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
       // SO if every ChannelHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
       //
-      if (this._applyingState) { return }; 
       var chandler;
       var message;
       var channelConfig;

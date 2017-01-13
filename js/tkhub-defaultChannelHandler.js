@@ -20,11 +20,15 @@ define([
 
     startLaunchSequence: function() {
       // This default channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
-      // This handler stores the state in localStorage. There's no need to manage userIDs or anything like that
-      // If this channel is used along other channel who store the state, the other channel will normally be the launch manager
-      // and will take care of identifying the user.
+      // This handler stores the state in localStorage. 
+      // In general, the launch sequence determines de identity of the user. This CH, since it doesn't really do a launch sequence,
+      // we just set up a hardcoded user identity
+      // If this channel is used along other channel that stores the state, the other channel will normally be the launch manager
       console.log('defaultChannelHandler: starting launch sequence...');
       console.log('defaultChannelHandler: launch sequence finished');
+      Adapt.trackingHub.userInfo.mbox =  'mailto:somebody@example.com';
+      // mbox_sha1sum , openid, account
+
       this.trigger('launchSequenceFinished');
 
       // AT THE END OF THE LAUNCH SEQUENCE TRACKINGhUB SHOULD HAVE AN ACTOR property?
