@@ -76,7 +76,7 @@ define([
     /*******  STATE MANAGEMENT FUNCTIONS *******
     /*******************************************/
 
-    initializeState: function(newUserID) {
+    initializeState: function() {
         // Normally, this function would initialize our own state representation. That would be: state.basic
         // But in this channelHandler we're NOT going to keep an internal representation per se, because we don't need
         // to use specific state structures. When saving, we'll just save some attributes from the components.
@@ -153,8 +153,9 @@ define([
       var fullState = $.parseJSON(localStorage.getItem('state_' + courseID));
       if (!fullState) {
           fullState = {};
-          var userID = localStorage.getItem('UserID')
-          localState = this.initializeState(userID);
+          // var userID = localStorage.getItem('UserID')
+          // localState = this.initializeState(userID);
+          localState = this.initializeState();
           fullState[this._OWNSTATEKEY] = localState;
       }
       this._OWNSTATE = fullState[this._OWNSTATEKEY];
