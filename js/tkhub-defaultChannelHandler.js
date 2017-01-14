@@ -36,7 +36,7 @@ define([
 
     /*******  END LAUNCH SEQUENCE FUNCTIONS *******/
 
-    
+
     processEvent: function(channel, eventSourceName, eventName, args) {
       // In this particular channel handler we want a pretty centralized processing of all events:
       // On every event, we're going to:
@@ -96,12 +96,16 @@ define([
     },
 
     getUpdatedLocalState: function() {
-      // Our state representation (localState) is an object whose keys are the ids of the components, and the values are objects
+      // Our state representation (localState) is an object whose keys are the titles of the components, 
+      // (or ids, depending on config. titles are the default, and preferred) and the values are objects
       // with the attributes that begin with '_'.
       var localState = {};
       _.each(Adapt.components.models, function(component) {
-        // var componentID = component.get('_id');
-        var compTitleKey = Adapt.trackingHub.titleToKey(component.get('title'));
+          var compKey = null;
+          Adapt.trackingHub._config._useId ? 
+              compKey = component.get('_id')
+              :
+              compKey = Adapt.trackingHub.titleToKey(component.get('title'));
         // These are the attributes that we want to save (if they exist in the component)
         var atts = [
                     '_canReset',
@@ -127,12 +131,10 @@ define([
                     '_userAnswer',
         ]
 
-        //localState[componentID] = {};
-        localState[compTitleKey] = {};
+        localState[compKey] = {};
         _.each(atts, function(attName) {
             if (_.has(component.attributes, attName)) {
-                //localState[componentID][attName] = component.get(attName);
-                localState[compTitleKey][attName] = component.get(attName);
+                localState[compKey][attName] = component.get(attName);
             }
         }, this);
       }, this);
@@ -153,8 +155,6 @@ define([
       var fullState = $.parseJSON(localStorage.getItem('state_' + courseID));
       if (!fullState) {
           fullState = {};
-          // var userID = localStorage.getItem('UserID')
-          // localState = this.initializeState(userID);
           localState = this.initializeState();
           fullState[this._OWNSTATEKEY] = localState;
       }
@@ -169,10 +169,12 @@ define([
       // process each item in localState, which is a component
       if (localState) {
           _.each(Adapt.components.models, function(component) {
-            //var componentID = component.get('_id');
-            var compTitleKey = Adapt.trackingHub.titleToKey(component.get('title'));
-            //var stateAtts = localState[componentID];
-            var stateAtts = localState[compTitleKey];
+            var compKey = null;
+            Adapt.trackingHub._config._useId ? 
+              compKey = component.get('_id')
+              :
+              compKey = Adapt.trackingHub.titleToKey(component.get('title'));
+            var stateAtts = localState[compKey];
             _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
                 component.set(key, value );
             }, this);

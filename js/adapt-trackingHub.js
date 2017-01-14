@@ -69,7 +69,8 @@ define([
         : false;
       if (this._config && this._config._isEnabled !== false) {
         this._config._courseID = this._config._courseID || this.genUUDI();
-        this._config._isStrictTitle = this._config._isStrictTitle || true;
+        // this._config._isStrictTitle = this._config._isStrictTitle || true;
+        this._config._useId = this._config._useId || false;
         return true;
       }
       return false;
@@ -94,7 +95,6 @@ define([
     },
 
     checkStrictTitles: function() {
-      // var titles = [];
       var idsWithEmptyTitles = [];
       var uniqueTitles = [];
       var repeatedTitles = [];
@@ -102,7 +102,6 @@ define([
       var result = true;
       _.each(Adapt.components.models, function(componentModel) {
         var t = componentModel.get('title');
-        //titles.push(t);
         if (t.trim() == '') {
             idsWithEmptyTitles.push(componentModel.get('_id'));
         } else {
@@ -138,7 +137,7 @@ define([
 
     onDataReady: function() {
       // Check strict titles.
-      if (this._config._isStrictTitle) {
+      if (!this._config._useId) {
           if (!this.checkStrictTitles()) {
               return
           }
