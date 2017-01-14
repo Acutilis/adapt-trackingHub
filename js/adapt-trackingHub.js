@@ -63,13 +63,13 @@ define([
       }, this);
     },
 
-
     checkConfig: function() {
       this._config = Adapt.config.has('_trackingHub') 
         ? Adapt.config.get('_trackingHub')
         : false;
       if (this._config && this._config._isEnabled !== false) {
         this._config._courseID = this._config._courseID || this.genUUDI();
+        this._config._isStrictTitle = this._config._isStrictTitle || true;
         return true;
       }
       return false;
@@ -93,10 +93,56 @@ define([
       return false;
     },
 
+    checkStrictTitles: function() {
+      // var titles = [];
+      var idsWithEmptyTitles = [];
+      var uniqueTitles = [];
+      var repeatedTitles = [];
+      var msg = '';
+      var result = true;
+      _.each(Adapt.components.models, function(componentModel) {
+        var t = componentModel.get('title');
+        //titles.push(t);
+        if (t.trim() == '') {
+            idsWithEmptyTitles.push(componentModel.get('_id'));
+        } else {
+          if ( _.indexOf(uniqueTitles, t) == -1 ) {
+              uniqueTitles.push(t);
+          } else {
+              repeatedTitles.push(t);
+          }
+        }
+      });
+      if (idsWithEmptyTitles.length > 0) {
+          msg += 'The components with the following Ids have empty titles:\n';
+          _.each(idsWithEmptyTitles, function(id) {
+              msg = msg + id + '\n';
+          });
+      }
+      if (repeatedTitles.length > 0) {
+          msg += 'The following titles are assigned to more than one component:\n';
+          _.each(repeatedTitles, function(title) {
+              msg = msg + title + '\n';
+          });
+      }
+      if(msg.length > 0) {
+          msg += 'PLEASE FIX TITLES. Tracking aborted. It will NOT work.';
+          alert(msg);
+          result = false;
+      }
+      return result;
+    }, 
+
     /*******  END CONFIG FUNCTIONS *******/
 
 
     onDataReady: function() {
+      // Check strict titles.
+      if (this._config._isStrictTitle) {
+          if (!this.checkStrictTitles()) {
+              return
+          }
+      }
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
@@ -319,6 +365,11 @@ define([
 
     getValidFunctionName: function (eventSourceName, eventName) {
       return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
+    },
+
+    titleToKey: function(str) {
+        // replace spaces with '_' and lowercase all
+        return str.replace(/:/g, "_").toLowerCase();
     },
 
     onDocumentVisibilityChange: function() {

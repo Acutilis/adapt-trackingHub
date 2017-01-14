@@ -100,7 +100,8 @@ define([
       // with the attributes that begin with '_'.
       var localState = {};
       _.each(Adapt.components.models, function(component) {
-        var componentID = component.get('_id');
+        // var componentID = component.get('_id');
+        var compTitleKey = Adapt.trackingHub.titleToKey(component.get('title'));
         // These are the attributes that we want to save (if they exist in the component)
         var atts = [
                     '_canReset',
@@ -126,10 +127,12 @@ define([
                     '_userAnswer',
         ]
 
-        localState[componentID] = {};
+        //localState[componentID] = {};
+        localState[compTitleKey] = {};
         _.each(atts, function(attName) {
             if (_.has(component.attributes, attName)) {
-                localState[componentID][attName] = component.get(attName);
+                //localState[componentID][attName] = component.get(attName);
+                localState[compTitleKey][attName] = component.get(attName);
             }
         }, this);
       }, this);
@@ -165,8 +168,10 @@ define([
       // process each item in localState, which is a component
       if (localState) {
           _.each(Adapt.components.models, function(component) {
-            var componentID = component.get('_id');
-            var stateAtts = localState[componentID];
+            //var componentID = component.get('_id');
+            var compTitleKey = Adapt.trackingHub.titleToKey(component.get('title'));
+            //var stateAtts = localState[componentID];
+            var stateAtts = localState[compTitleKey];
             _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
                 component.set(key, value );
             }, this);
