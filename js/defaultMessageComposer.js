@@ -72,7 +72,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'visited';
-      message.object = args.get('_id');  // TODO: here and all othern: use title instead of _id
+      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);
@@ -106,7 +106,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.id;  // TODO: here and all othern: use title instead of _id
+      message.object = args.id;  // TODO: here and all others: use title instead of _id
       message.objType = args.type;
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       message.extraData = {};

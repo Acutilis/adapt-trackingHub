@@ -80,16 +80,20 @@ define([
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
 
-      if ((_.isArray(channel._ignoreEvents)) && 
+      if(((_.isArray(channel._ignoreEvents)) && 
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
           !_.isEmpty(channel._name) ) &&
         (channel.has('_handlerName') ) &&
         ( _.isString(channel._handlerName) &&
-         !_.isEmpty(channel._handlerName) ) ) {
-        return  true;
+         !_.isEmpty(channel._handlerName) ))) {
+             return true;
       }
-
+      // I can't check config here, because the channel handler doesn't exist yet....
+      var ch = this._channel_handlers[channel._name];
+      if (ch.hasOwnProperty('checkConfig')) {
+          specificChannelConds = ch.checkConfig(channel);
+      }
       console.log('trackingHub Error: Channel configuration for channel ' + channel._name + ' is wrong.');
       return false;
     },
@@ -366,9 +370,20 @@ define([
       return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
     },
 
+    getElementKey: function(obj) {
+        // checks the config to see if the 'key' (unique identifier) of a Component, block, article, or contentObject
+        // should be the _id or the title
+        var key = null;
+        this._config._useId ?
+            key = obj.get('_id')
+            :
+            key = this.titleToKey(obj.get('title'));
+       return key;
+    },
+
     titleToKey: function(str) {
         // replace spaces with '_' and lowercase all
-        return str.replace(/:/g, "_").toLowerCase();
+        return str.replace(/[.:\s]/g, "_").toLowerCase();
     },
 
     onDocumentVisibilityChange: function() {

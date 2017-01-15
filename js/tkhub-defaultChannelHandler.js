@@ -18,7 +18,7 @@ define([
     /*******  LAUNCH SEQUENCE  FUNCTIONS *******
     /*******************************************/
 
-    startLaunchSequence: function() {
+    startLaunchSequence: function(channel, courseID) {
       // This default channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
       // This handler stores the state in localStorage. 
       // In general, the launch sequence determines de identity of the user. This CH, since it doesn't really do a launch sequence,
@@ -101,11 +101,14 @@ define([
       // with the attributes that begin with '_'.
       var localState = {};
       _.each(Adapt.components.models, function(component) {
+          /*
           var compKey = null;
           Adapt.trackingHub._config._useId ? 
               compKey = component.get('_id')
               :
               compKey = Adapt.trackingHub.titleToKey(component.get('title'));
+              */
+        var compKey = Adapt.trackingHub.getElementKey(component);
         // These are the attributes that we want to save (if they exist in the component)
         var atts = [
                     '_canReset',
