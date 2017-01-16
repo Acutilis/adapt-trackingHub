@@ -56,7 +56,6 @@ define([
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
-          this.applyChannelConfig(channel);
           if (channel._isLaunchManager) { this._launchManagerChannel = channel };
           if (channel._isStateSource) { this._stateSourceChannel = channel };
           if (channel._isStateStore) { this._stateStoreChannel = channel };
@@ -236,6 +235,10 @@ define([
 
     onLaunchSequenceFinished: function(ev) {
       console.log('launch sequence finished.');
+      // once the launch seq is finished (we have the user identity) we can 'initialize' the channels
+      _.each(this._channels, function(channel) {
+        this.applyChannelConfig(channel);
+      },this);
       // once the launch seq is complete, let's attempt to load state, if there's a state source
       if (this._stateSourceChannel) {
         var channelHandler = this._channel_handlers[this._stateSourceChannel._handlerName];
