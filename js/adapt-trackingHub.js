@@ -79,7 +79,12 @@ define([
     checkChannelConfig: function(channel) {
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
-
+      if (channel._tracksEvents == undefined) {
+          channel._tracksEvents = true;
+      }
+      if (channel._isFakeLRS == undefined) {
+          channel._isFakeLRS = false;
+      }
       if(((_.isArray(channel._ignoreEvents)) && 
         (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
         (channel.has('_name') && _.isString(channel._name) &&
@@ -328,7 +333,7 @@ define([
         // TODO: Remove functionality for ignoring events. Efectively, if there's no handler for them they
         // are ignored, and the checking takes more processing than not doing anything.
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
-        if ( !isEventIgnored ) {
+        if ( !isEventIgnored && channel._tracksEvents ) {
           chandler = this.getChannelHandlerFromChannelHandlerName(channel._handlerName);
           chandler.processEvent(channel, eventSourceName, eventName, args);
         }
