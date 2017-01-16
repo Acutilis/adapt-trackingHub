@@ -13,7 +13,6 @@ define([
     _channels: [],
     _channel_handlers: {},
     _launchManagerChannel: null,
-    _stateSourceChannel: null,
     _stateStoreChannel: null,
 
     // Basic, default tracked messages
@@ -56,8 +55,8 @@ define([
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
+          this.applyChannelConfig(channel);
           if (channel._isLaunchManager) { this._launchManagerChannel = channel };
-          if (channel._isStateSource) { this._stateSourceChannel = channel };
           if (channel._isStateStore) { this._stateStoreChannel = channel };
         }
       }, this);
@@ -140,6 +139,13 @@ define([
       }
       return result;
     }, 
+
+    applyChannelConfig: function(channel) {
+      var ch = this.getChannelHandlerFromChannelHandlerName(channel._handlerName);
+      if (ch.hasOwnProperty('applyChannelConfig')) {
+          ch.applyChannelConfig(channel);
+      }
+    },
 
     /*******  END CONFIG FUNCTIONS *******/
 
