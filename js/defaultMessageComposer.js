@@ -61,7 +61,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'visited';
-      message.object = args.get('_id');
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = 'menu';
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);
@@ -72,7 +72,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'visited';
-      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);
@@ -84,7 +84,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       if (args.get('_isQuestionType')) {
@@ -106,7 +106,9 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.id;  // TODO: here and all others: use title instead of _id
+      // here args is the state of the assessment (it's not a ref to a component)
+      // so we get the id, there's no _title property...
+      message.object = args.id;
       message.objType = args.type;
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       message.extraData = {};
@@ -124,7 +126,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);
@@ -136,7 +138,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);
@@ -148,7 +150,7 @@ define([ 'coreJS/adapt'
 
       message.actor = Adapt.trackingHub.userInfo;
       message.verb = 'completed';
-      message.object = args.get('_id');  // TODO: here and all others: use title instead of _id
+      message.object = Adapt.trackingHub.getElementKey(args);
       message.objType = args.get('_type');
       message.text = message.verb + ' ' + message.objType + ' ' + message.object;
       return (message);

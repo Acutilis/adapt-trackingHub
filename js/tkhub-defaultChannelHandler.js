@@ -167,6 +167,7 @@ define([
     },
 
     applyStateToStructure: function() {
+      this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY];
       var localState = this._OWNSTATE;
       // Walk through all components, and update its '_' attributes with what ther is in localState.
       // process each item in localState, which is a component
