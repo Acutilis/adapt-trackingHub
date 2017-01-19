@@ -1,12 +1,12 @@
 {
   "name": "adapt-trackingHub",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "framework": "^2.0.0",
-  "homepage": "https://github.com/theodi/adapt-trackingHub",
+  "homepage": "https://github.com/Acutilis/adapt-trackingHub",
   "issues": "",
   "displayName" : "TrackingHub",
   "extension" : "trackingHub",
-  "description": "An extension that implements the basic mechanisms for multichannel tracking, including xAPI. Extended from https://github.com/Acutilis/adapt-trackingHub",
+  "description": "An extension that implements the basic mechanisms for multichannel tracking.",
   "main": "/js/adapt-trackingHub.js",
   "keywords": [
     "adapt-plugin",

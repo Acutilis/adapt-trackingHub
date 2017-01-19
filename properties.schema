@@ -2,7 +2,7 @@
   "type": "object",
   "$schema": "http://json-schema.org/draft-04/schema",
   "id": "http://jsonschema.net",
-  "required": false,
+  "required":false,
   "globals": {
   },
   "properties" : {
@@ -34,16 +34,16 @@
                   "title" : "Course ID",
                   "default" : "",
                   "validators" : [ "required", "url" ],
-                  "help" : "The unique global ID for this course for tracking purposes.",
+                  "help" : "The unique global ID for this course for tracking purposes."
                 },
                 "_useId" : {
                   "type" : "string",
                   "required" : false,
-                  "inputType" : "boolean",
+                  "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
                   "title" : "Use Id",
                   "default" : false,
                   "validators" : [ ],
-                  "help" : "Force to use the _id of the component to identify it in tracking. Should be false, in which case the title is use to identify the component..",
+                  "help" : "Force to use the _id of the component to identify it in tracking. Should be false, in which case the title is use to identify the component.."
                 },
                 "_channels" : {
                   "type" : "array",
@@ -59,7 +59,7 @@
                         "title" : "Channel name",
                         "default" : "Channel",
                         "validators" : [ "required" ],
-                        "help" : "A one-word name for the channel.",
+                        "help" : "A one-word name for the channel."
                       },
                       "_isEnabled" : {
                         "type" : "boolean",
@@ -97,6 +97,15 @@
                         "validators" : [],
                         "help" : "If set to 'true', this channel will be responsible for performing the launch sequence, which acquires the user identity (and possibly other info)."
                       },
+                      "_tracksEvents" : {
+                        "type" : "boolean",
+                        "required" : true,
+                        "default" : true,
+                        "title" : "Tracks Events",
+                        "inputType" : { "type" : "Boolean", "options" : [ true, false] },
+                        "validators" : [],
+                        "help" : "If set to 'false', this channel will ignore all events (it will not send 'messages' corresponding to events)."
+                      },
                       "_handlerName" : {
                         "type" : "string",
                         "title" : "Channel Handler Name",
@@ -127,6 +136,20 @@
                         "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
                         "validators" : [],
                         "help" : "For xAPI channels, if set to 'true', this channel instead of POSTing the statements to the LRS, will log them on the console, so can test without an LRS.."
+                      },
+                      "_ignoreEvents" : {
+                        "type" : "array",
+                        "required" : false,
+                        "title" : "Events to Ignore",
+                        "items" : {
+                          "title": "Event",
+                          "type": "string",
+                          "required": false,
+                          "default": "navigationView:preRender",
+                          "validators": [],
+                          "inputType": "Text",
+                          "help": "Event that you want this channel to ignore."
+                        }
                       },
                       "_xapiData" : {
                         "type" : "object",
