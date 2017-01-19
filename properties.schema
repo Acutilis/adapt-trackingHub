@@ -123,7 +123,7 @@
                         "enum" : [ "harcoded", "adlxapi", "rustici", "spoor" ],
                         "inputType" : {
                           "type" : "Select",
-                          "options" : [ "harcoded", "adlxapi", "rustici", "spoor" ] 
+                          "options" : [ "hardcoded", "adlxapi", "rustici", "spoor" ] 
                         },
                         "default" : "hardcoded",
                         "editorOnly" : true
@@ -165,7 +165,27 @@
                             "default" : "http://www.mylms.com",
                             "editorOnly" : true
                           },
-                          "_endpoint" : {
+                          "_mbox" : {
+                            "title" : "Mbox Identity",
+                            "Help" : "Only needed For xAPI channels using 'hardcoded' launch method, to identify the user. The format is 'mailto:johndoe@example.com'",
+                            "type" : "string",
+                            "required" : false,
+                            "inputType" : "Text",
+                            "validators" : [ ],
+                            "default" : "mailto:johndoe@example.com",
+                            "editorOnly" : true
+                          },
+                          "_fullName" : {
+                            "title" : "Hardcoded user name",
+                            "Help" : "Only needed For xAPI channels using 'hardcoded' launch method. Full name of the fake user.",
+                            "type" : "string",
+                            "required" : false,
+                            "inputType" : "Text",
+                            "validators" : [ ],
+                            "default" : "John Doe",
+                            "editorOnly" : true
+                          },
+                          "_endPoint" : {
                             "type" : "string",
                             "inputType" : "Text",
                             "title" : "Channel URL",
@@ -174,7 +194,7 @@
                             "validators" : [ "url" ],
                             "help" : "The URL to which data is sent."
                           },
-                          "_username" : {
+                          "_userName" : {
                             "type" : "string",
                             "title" : "Username",
                             "required" : false,
