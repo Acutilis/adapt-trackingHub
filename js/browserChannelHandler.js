@@ -1,31 +1,47 @@
 define([
         'coreJS/adapt',
-        './defaultMessageComposer',
+        './jsonMessageComposer',
 ], function(Adapt, msgComposer) {
 
-  var DefaultChannelHandler = _.extend({
+  var BrowserChannelHandler = _.extend({
 
-    _NAME: 'defaultChannelHandler',
+    _CHID: 'browserChannelHandler',
     _OWNSTATEKEY: 'basic',
     _OWNSTATE: null,
 
     initialize: function() {
-      console.log('Initializing defaultChannelHandler');
+      console.log('Initializing browserChannelHandler');
       this.listenToOnce(Adapt.trackingHub, 'stateReady', this.onStateReady);
     },
+
+    /*******************************************
+    /*******      CONFIG  FUNCTIONS      *******
+    /*******************************************/
+
+
+    checkConfig: function() {
+      // this especial handler must implement this function, like all handlers, but always returns true
+        return true;
+    },
+
+    getChannelDefinitions: function() {
+    },
+
+    /*******  END CONFIG FUNCTIONS *******/
+
 
     /*******************************************
     /*******  LAUNCH SEQUENCE  FUNCTIONS *******
     /*******************************************/
 
     startLaunchSequence: function(channel, courseID) {
-      // This default channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
+      // This browser channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
       // This handler stores the state in localStorage. 
       // In general, the launch sequence determines de identity of the user. This CH, since it doesn't really do a launch sequence,
       // we just set up a hardcoded user identity
       // If this channel is used along other channel that stores the state, the other channel will normally be the launch manager
-      console.log('defaultChannelHandler: starting launch sequence...');
-      console.log('defaultChannelHandler: launch sequence finished');
+      console.log('browserChannelHandler: starting launch sequence...');
+      console.log('browserChannelHandler: launch sequence finished');
       Adapt.trackingHub.userInfo.mbox =  'mailto:somebody@example.com';
       // mbox_sha1sum , openid, account
 
@@ -68,7 +84,7 @@ define([
 
     deliverMsg: function(message, channel) {
        // here show message.text, message
-       console.log('defaultChannelHandler: ', message.text, message);
+       console.log('browserChannelHandler: ', message.text, message);
     },
 
 
@@ -149,8 +165,8 @@ define([
       // IF we want this channelHandler to be  capable of saving state, we have to implement this function.
       // IMPORTANT: this function is always called from trackingHub NOT from within this channel handler!
       localStorage.setItem('state_'+ courseID, JSON.stringify(Adapt.trackingHub._state));
-      //Adapt.trigger('defaultChannelHandler:saveStateSucceded');
-      console.log('defaultChannelHandler: state saved');
+      //Adapt.trigger('browserChannelHandler:saveStateSucceded');
+      console.log('browserChannelHandler: state saved');
     },
 
     loadState: function(channel, courseID) {
@@ -162,7 +178,7 @@ define([
           fullState[this._OWNSTATEKEY] = localState;
       }
       this._OWNSTATE = fullState[this._OWNSTATEKEY];
-      console.log('defaultChannelHandler: state loaded');
+      console.log('browserChannelHandler: state loaded');
       this.trigger('stateLoaded', fullState);
     },
 
@@ -183,7 +199,7 @@ define([
                 component.set(key, value );
             }, this);
           }, this);
-          console.log('defaultChannelHandler state applied to structure...');
+          console.log('browserChannelHandler state applied to structure...');
       }
     },
 
@@ -201,6 +217,6 @@ define([
 
   }, Backbone.Events);
   
-  DefaultChannelHandler.initialize();
-  return (DefaultChannelHandler);
+  BrowserChannelHandler.initialize();
+  return (BrowserChannelHandler);
 });

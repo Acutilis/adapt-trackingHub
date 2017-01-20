@@ -4,7 +4,7 @@ define([ 'coreJS/adapt'
   var DefaultMessageComposer = _.extend({
 
     baseMessage: {
-      composer: 'defaultMC_v1.0',
+      composer: 'jsonMC_v1.0',
       timestamp: null,
       verb: null,
       object: null,

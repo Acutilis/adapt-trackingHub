@@ -1,20 +1,22 @@
 define([
   'coreJS/adapt',
-  './tkhub-defaultChannelHandler',
-], function(Adapt, defaultChannelHandler ) {
+  './browserChannelHandler',
+], function(Adapt, browserChannelHandler ) {
 
-    // OLD DON'T DO THIS: var TrackingHub = _.extend({
     Adapt.trackingHub = _.extend({
 
     userInfo: {},
     _state: {},
     _sessionID: null,
     _config: null,
-    _channels: [],
-    _channel_handlers: {},
+    //_channel_handlers: {},
+    _channel_handlers: [],      // references to the existing channel handler modules
+    _channels: [],              // configuration for each channel
     _launchManagerChannel: null,
     _stateSourceChannel: null,
     _stateStoreChannel: null,
+    _tkhubOK: false,
+
 
     // Basic, default tracked messages
     _TRACKED_MSGS: {
@@ -34,13 +36,13 @@ define([
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
     },
 
-    initialize: function() {
-      this.addChannelHandler(defaultChannelHandler);
 
+    initialize: function() {
+      this.addChannelHandler(browserChannelHandler);
+      //_.bindAll(this,'onConfigLoaded');
       //  _.bindAll(this,'onSateApplied', 'setupInitialEventListeners');
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
-      this.listenToOnce(this, 'allChannelHandlersLoaded', this.onAllChannelHandlersLoaded);
     },
 
 
@@ -49,10 +51,20 @@ define([
     /*******************************************/
 
     onConfigLoaded: function() {
+      if (! this.checkBaseConfig()) // if trackingHub is disabled, don't do anything
+        return false;
+      if (!this.processConfigs()) {
+          console.log('Config for trackingHub or any of its tracking extension is wrong. Tracking will not work.');
+          return false;
+      }
+      this._tkhubOK = true;
+      return true;
+    },
+
+/*
+    OLDonConfigLoaded: function() {
       // just add the defined channels to trackingHub
 
-      if (!this.checkConfig())
-        return;
       _.each(this._config._channels, function addChannel (channel) {
         if (this.checkChannelConfig(channel) && channel._isEnabled) {
           this._channels.push(channel);
@@ -62,20 +74,98 @@ define([
         }
       }, this);
     },
+*/
 
-    checkConfig: function() {
+    processConfigs: function() {
+      // check the config for each channel, and if it's ok, place it in the _channels array
+      // first do the browserChannel, which is different
+      if( !_.has(this._config, '_browserChannel') || ! this.checkBrowserChannelConfig()) {
+          return false;
+      }
+      if (this._config._browserChannel._isEnabled) {
+        this._config._browserChannel._handler = browserChannelHandler;
+        if (this._config._browserChannel._isLaunchManager) { this._launchManagerChannel = this._config._browserChannel };
+        if (this._config._browserChannel._isStateSource) { this._stateSourceChannel = this._config._browserChannel };
+        this._channels.push(this._config._browserChannel);
+      }
+      // now do the same with the rest of the channel handlers
+      _.each(this._channel_handlers, function(chandler) {
+          if (chandler != browserChannelHandler) {
+            if (! chandler.checkConfig())
+              return false;
+            if (chandler._config._isEnabled) {
+              // Only if this handler is enabled, we process its channel definitions to add them to our array of _channels.
+              var channelDefs = chandler.getChannelDefinitions(); 
+              _.each(channelDefs, function(channel) {
+                // if channel is enabled, add it to our list of channels, adding a reference to the handler itself
+                if (channel._isEnabled) {
+                  channel._handler = chandler;
+                  if (channel._isLaunchManager) { this._launchManagerChannel = channel };
+                  if (channel._isStateSource) { this._stateSourceChannel = channel };
+                  //if (channel._isStateStore) { this._stateStoreChannel = channel };
+                  this._channels.push(channel);
+                }
+            }, this);
+          }
+        }
+      }, this);
+    return true;
+    },
+
+    checkBaseConfig: function() {
       this._config = Adapt.config.has('_trackingHub') 
         ? Adapt.config.get('_trackingHub')
         : false;
       if (this._config && this._config._isEnabled !== false) {
-        this._config._courseID = this._config._courseID || this.genUUDI();
-        // this._config._isStrictTitle = this._config._isStrictTitle || true;
-        this._config._useId = this._config._useId || false;
+        this._config._courseID = this._config._courseID || 'http://www.courses.com/' + this.genUUDI();
+        this._config._identifyById = this._config._identifyById || false; //this is WRONG!
         return true;
       }
       return false;
     },
 
+    checkBrowserChannelConfig: function() {
+      var bcconf = this._config._browserChannel;
+      return this.checkCommonChannelConfig(bcconf);
+    },
+
+    checkCommonChannelConfig: function(chConfig) {
+      // Check configuration settings that are common to all channels
+      // This function will also be called from other tracking extensions
+      if (chConfig._name == undefined) {
+          // not a breaking problem, but do report the issue
+          chConfig._name = genUUID();
+          console.log('No name provided for a channel. You should set a name for the channel!');
+      }
+      if (chConfig._isEnabled == undefined)
+          chConfig._isEnabled = true;
+      if (chConfig._tracksEvents == undefined)
+          chConfig._tracksEvents = true;
+      if (chConfig._tracksState == undefined)
+          chConfig._tracksState = true;
+      if (chConfig._isStateSource == undefined)
+          chConfig._isStateSource = false;
+      if (chConfig._isStateStore == undefined)
+          chConfig._isStateStore = true;
+      if (chConfig._isLaunchManager == undefined)
+          chConfig._isLaunchManager = false;
+      chConfig._ignoreEvents = chConfig._ignoreEvents || [];
+
+      if ( ( _.isArray(chConfig._ignoreEvents)) && 
+           ( _.isBoolean(chConfig._isEnabled)) &&
+           ( _.isBoolean(chConfig._tracksEvents)) &&
+           ( _.isBoolean(chConfig._tracksState)) &&
+           ( _.isBoolean(chConfig._isStateSource)) &&
+           ( _.isBoolean(chConfig._isStateStore)) &&
+           ( _.isBoolean(chConfig._isLaunchManager)) &&
+           (_.has(chConfig,'_name') && _.isString(chConfig._name) && !_.isEmpty(chConfig._name)))   {
+             return true;
+      }
+      console.log('There are errors in the common channel settings for channel ' + chConfig._name + '.');
+      return false;
+    },
+
+/*
     checkChannelConfig: function(channel) {
       channel.has = channel.hasOwnProperty;
       channel._ignoreEvents = channel._ignoreEvents || [];
@@ -94,7 +184,7 @@ define([
          !_.isEmpty(channel._handlerName) ))) {
              return true;
       }
-      // I can't check config here, because the channel handler doesn't exist yet....
+
       var ch = this._channel_handlers[channel._name];
       if (ch.hasOwnProperty('checkConfig')) {
           specificChannelConds = ch.checkConfig(channel);
@@ -102,6 +192,7 @@ define([
       console.log('trackingHub Error: Channel configuration for channel ' + channel._name + ' is wrong.');
       return false;
     },
+*/
 
     checkStrictTitles: function() {
       var idsWithEmptyTitles = [];
@@ -142,9 +233,8 @@ define([
     }, 
 
     applyChannelConfig: function(channel) {
-      var ch = this.getChannelHandlerFromChannelHandlerName(channel._handlerName);
-      if (ch.hasOwnProperty('applyChannelConfig')) {
-          ch.applyChannelConfig(channel);
+      if (channel._handler.hasOwnProperty('applyChannelConfig')) {
+          channel._handler.applyChannelConfig(channel);
       }
     },
 
@@ -153,7 +243,7 @@ define([
 
     onDataReady: function() {
       // Check strict titles.
-      if (!this._config._useId) {
+      if (!this._config._identifyById) {
           if (!this.checkStrictTitles()) {
               return
           }
@@ -161,7 +251,7 @@ define([
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
-          var channelHandler = this._channel_handlers[this._launchManagerChannel._handlerName];
+          var channelHandler = this._launchManagerChannel._handler;
           if (! channelHandler) {
               alert('Please review your configuration file. There seems to be an error in the handler name ' + this._launchManagerChannel._handlerName);
           }
@@ -176,7 +266,7 @@ define([
     /*******************************************
     /******* GENERAL  UTILITY  FUNCTIONS *******
     /*******************************************/
-
+/*
     checkChannelHandlersLoaded: function() {
         // if this_channelHandlers have all the keys that are in this._channelHandlersToLoad
         // then all are loaded, and we can trigger the event.
@@ -186,6 +276,7 @@ define([
             this.trigger('allChannelHandlersLoaded');
         }
     },
+*/
 
     queryString: function() {
       // This function is anonymous, is executed immediately and 
@@ -241,12 +332,15 @@ define([
       },this);
       // once the launch seq is complete, let's attempt to load state, if there's a state source
       if (this._stateSourceChannel) {
-        var channelHandler = this._channel_handlers[this._stateSourceChannel._handlerName];
+        var channelHandler = this._stateSourceChannel._handler;
         this.listenToOnce(channelHandler, 'stateLoaded', this.onStateLoaded);
         //this.listenToOnce(this, 'stateApplied', this.onSateApplied);
         console.log('loading state...');
         channelHandler.loadState(this._stateSourceChannel, this._config._courseID);
-      } 
+      } else {
+          this.onStateLoaded({});  // initialize the full state representation to an empty object
+      }
+
     },
 
     onStateLoaded: function(fullState) {
@@ -263,9 +357,9 @@ define([
     applyStateToStructure: function() {
         // call every channel handler (channelHandler) to apply its particular state representation
         _.each(this._channel_handlers, function(chandler, name, list) {
-            if(chandler.applyStateToStructure) {
-                chandler.applyStateToStructure();
-            }
+          if(chandler.applyStateToStructure) {
+            chandler.applyStateToStructure();
+          }
         }, this);
     },
 
@@ -311,7 +405,7 @@ define([
         eventSourceName = eventSource;
       } else {
         sourceObj = eventSource;
-        eventSourceName = sourceObj._NAME;
+        eventSourceName = sourceObj._CHID;
       }
       longEventName = eventSourceName + ':' + eventName;
 
@@ -345,8 +439,7 @@ define([
         // are ignored, and the checking takes more processing than not doing anything.
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
         if ( !isEventIgnored && channel._tracksEvents ) {
-          chandler = this.getChannelHandlerFromChannelHandlerName(channel._handlerName);
-          chandler.processEvent(channel, eventSourceName, eventName, args);
+          channel._handler.processEvent(channel, eventSourceName, eventName, args);
         }
       }, this);
       // At this point in time, trackingHub and all channels have processed (or not) the event, so the whole representation of state is updated.
@@ -354,30 +447,24 @@ define([
       this.saveState();
     },
 
-
+/*
     getChannelHandlerFromChannelHandlerName: function (chname) {
       return (this._channel_handlers[chname]);
     },
 
-
+*/
     addChannelHandler: function (ch) {
       // this function is here so other extensions (implementing ChannelHandlers) can call it to add themselves to trackingHub
-      this._channel_handlers[ch['_NAME']] = ch;
-      // @jpablo128 addition: call the THandler's  'initialize' function if it exists
-      //ch._THUB = this;
-      /*
-      if (th.initialize) {
-          th.initialize();
-      }
-     */ 
-      this.checkChannelHandlersLoaded();
+      // this._channel_handlers[ch['_CHID']] = ch;
+      this._channel_handlers.push(ch);
+      // this.checkChannelHandlersLoaded();
     },
 
     saveState: function() {
       // TODO: implement configurable functionality to throttle saving somehow, that is, save only once every X times this function is called...
       _.each(this._channels, function(channel) {
         if (channel._isStateStore) {
-          this._channel_handlers[channel._handlerName].saveState(this._state, channel, this._config._courseID);
+          channel._handler.saveState(this._state, channel, this._config._courseID);
         }
       }, this);
     }, 
@@ -390,7 +477,7 @@ define([
         // checks the config to see if the 'key' (unique identifier) of a Component, block, article, or contentObject
         // should be the _id or the title
         var key = null;
-        this._config._useId ?
+        this._config._identifyById ?
             key = obj.get('_id')
             :
             key = this.titleToKey(obj.get('title'));
