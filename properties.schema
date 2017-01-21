@@ -36,8 +36,8 @@
                   "validators" : [ "required", "url" ],
                   "help" : "The unique global ID for this course for tracking purposes."
                 },
-                "_useId" : {
-                  "type" : "string",
+                "_identifyById" : {
+                  "type" : "boolean",
                   "required" : false,
                   "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
                   "title" : "Use Id",
@@ -45,178 +45,88 @@
                   "validators" : [ ],
                   "help" : "Force to use the _id of the component to identify it in tracking. Should be false, in which case the title is use to identify the component.."
                 },
-                "_channels" : {
-                  "type" : "array",
-                  "required" : true,
-                  "title" : "Channels",
-                  "items" : {
-                    "type" : "object",
-                    "required" : true,
-                    "properties" : {
-                      "_name" : {
-                        "type" : "string",
-                        "inputType" : "Text",
-                        "title" : "Channel name",
-                        "default" : "Channel",
-                        "validators" : [ "required" ],
-                        "help" : "A one-word name for the channel."
-                      },
-                      "_isEnabled" : {
-                        "type" : "boolean",
-                        "required" : true,
-                        "default" : true,
-                        "title" : "Is enabled",
-                        "inputType" : { "type" : "Boolean", "options" : [ true, false ] },
-                        "validators" : [],
-                        "help" : "If set to 'false', trackingHub will not use this channel for tracking."
-                      },
-                      "_isStateSource" : {
-                        "type" : "boolean",
-                        "required" : true,
-                        "default" : false,
-                        "title" : "Is State Source",
-                        "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
-                        "validators" : [],
-                        "help" : "IMPORTANT: Only ONE channel shoud be stateSource. If set to 'true', trackingHub will load the state through this channel."
-                      },
-                      "_isStateStore" : {
-                        "type" : "boolean",
-                        "required" : true,
-                        "default" : false,
-                        "title" : "Is State Store",
-                        "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
-                        "validators" : [],
-                        "help" : "If set to 'true', trackingHub will store the state through this channel. Note: More than one channel can be state store."
-                      },
-                      "_isLaunchManager" : {
-                        "type" : "boolean",
-                        "required" : true,
-                        "default" : false,
-                        "title" : "Is Launch Manager",
-                        "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
-                        "validators" : [],
-                        "help" : "If set to 'true', this channel will be responsible for performing the launch sequence, which acquires the user identity (and possibly other info)."
-                      },
-                      "_tracksEvents" : {
-                        "type" : "boolean",
-                        "required" : true,
-                        "default" : true,
-                        "title" : "Tracks Events",
-                        "inputType" : { "type" : "Boolean", "options" : [ true, false] },
-                        "validators" : [],
-                        "help" : "If set to 'false', this channel will ignore all events (it will not send 'messages' corresponding to events)."
-                      },
-                      "_handlerName" : {
-                        "type" : "string",
-                        "title" : "Channel Handler Name",
-                        "help" : "Each channel handler plugin has a _NAME property to identify it. Here you must indicate the name of the channel handler plugin for this channel.",
-                        "required" : true,
-                        "inputType": "Text",
-                        "validators": [ "required" ],
-                        "default" : "defaultChannelHandler"
-                      },
-                      "_xapiLaunchMethod" : {
-                        "title" : "xAPI Launch Method",
-                        "Help" : "If a xAPI channel is also launchManager, it is necessary to provide the type of launch sequence it must use.",
-                        "type" : "string",
-                        "required" : false,
-                        "enum" : [ "harcoded", "adlxapi", "rustici", "spoor" ],
-                        "inputType" : {
-                          "type" : "Select",
-                          "options" : [ "hardcoded", "adlxapi", "rustici", "spoor" ] 
-                        },
-                        "default" : "hardcoded",
-                        "editorOnly" : true
-                      },
-                      "_isFakeLRS" : {
-                        "type" : "boolean",
-                        "required" : false,
-                        "default" : false,
-                        "title" : "Is Fake LRS",
-                        "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
-                        "validators" : [],
-                        "help" : "For xAPI channels, if set to 'true', this channel instead of POSTing the statements to the LRS, will log them on the console, so can test without an LRS.."
-                      },
-                      "_ignoreEvents" : {
-                        "type" : "array",
-                        "required" : false,
-                        "title" : "Events to Ignore",
-                        "items" : {
-                          "title": "Event",
-                          "type": "string",
-                          "required": false,
-                          "default": "navigationView:preRender",
-                          "validators": [],
-                          "inputType": "Text",
-                          "help": "Event that you want this channel to ignore."
-                        }
-                      },
-                      "_xapiData" : {
-                        "type" : "object",
-                        "required" : false,
-                        "properties" : {
-                          "_homePage" : {
-                            "title" : "Home Page",
-                            "Help" : "Only needed For xAPI channels using 'spoor' launch method. This is the 'homepage' attribute of the xAPI 'account' object.",
-                            "type" : "string",
-                            "required" : false,
-                            "inputType" : "Text",
-                            "validators" : [ "url" ],
-                            "default" : "http://www.mylms.com",
-                            "editorOnly" : true
-                          },
-                          "_mbox" : {
-                            "title" : "Mbox Identity",
-                            "Help" : "Only needed For xAPI channels using 'hardcoded' launch method, to identify the user. The format is 'mailto:johndoe@example.com'",
-                            "type" : "string",
-                            "required" : false,
-                            "inputType" : "Text",
-                            "validators" : [ ],
-                            "default" : "mailto:johndoe@example.com",
-                            "editorOnly" : true
-                          },
-                          "_fullName" : {
-                            "title" : "Hardcoded user name",
-                            "Help" : "Only needed For xAPI channels using 'hardcoded' launch method. Full name of the fake user.",
-                            "type" : "string",
-                            "required" : false,
-                            "inputType" : "Text",
-                            "validators" : [ ],
-                            "default" : "John Doe",
-                            "editorOnly" : true
-                          },
-                          "_endPoint" : {
-                            "type" : "string",
-                            "inputType" : "Text",
-                            "title" : "Channel URL",
-                            "required" : false,
-                            "default" : "",
-                            "validators" : [ "url" ],
-                            "help" : "The URL to which data is sent."
-                          },
-                          "_userName" : {
-                            "type" : "string",
-                            "title" : "Username",
-                            "required" : false,
-                            "default" : "",
-                            "inputType" : "Text",
-                            "validators" : [],
-                            "help" : "A username to authenticate on the backend of this channel"
-                          },
-                          "_password" : {
-                            "type" : "string",
-                            "inputType" : "Text",
-                            "title" : "Password",
-                            "default" : "",
-                            "required" : false,
-                            "validators" : [],
-                            "help" : "The password to authenticate on the backend of this channel"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
+                "_browserChannel" : {
+                  "type" : "object",
+                  "required" : false,
+                  "properties" : {
+                    "_name" : {
+                     "type" : "string",
+                     "inputType" : "Text",
+                     "title" : "Channel name",
+                     "default" : "Channel",
+                     "validators" : [ "required" ],
+                     "help" : "A one-word name for the channel."
+                    },
+                   "_isEnabled" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : true,
+                     "title" : "Is enabled",
+                     "inputType" : { "type" : "Boolean", "options" : [ true, false ] },
+                     "validators" : [],
+                     "help" : "If set to 'false', trackingHub will not use this channel for tracking."
+                   },
+                   "_tracksEvents" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : true,
+                     "title" : "Tracks Events",
+                     "inputType" : { "type" : "Boolean", "options" : [ true, false] },
+                     "validators" : [],
+                     "help" : "If set to 'false', this channel will ignore all events (it will not send 'messages' corresponding to events)."
+                   },
+                   "_tracksState" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : true,
+                     "title" : "Tracks State",
+                     "inputType" : { "type" : "Boolean", "options" : [ true, false] },
+                     "validators" : [],
+                     "help" : "If set to 'false', this channel will not update the in the state."
+                   },
+                   "_isStateSource" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : false,
+                     "title" : "Is State Source",
+                     "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
+                     "validators" : [],
+                     "help" : "IMPORTANT: Only ONE channel shoud be stateSource. If set to 'true', trackingHub will load the state through this channel."
+                   },
+                   "_isStateStore" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : false,
+                     "title" : "Is State Store",
+                     "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
+                     "validators" : [],
+                     "help" : "If set to 'true', trackingHub will store the state through this channel. Note: More than one channel can be state store."
+                   },
+                   "_isLaunchManager" : {
+                     "type" : "boolean",
+                     "required" : true,
+                     "default" : false,
+                     "title" : "Is Launch Manager",
+                     "inputType" : { "type" : "Boolean", "options" : [ false, true ] },
+                     "validators" : [],
+                     "help" : "If set to 'true', this channel will be responsible for performing the launch sequence, which acquires the user identity (and possibly other info)."
+                   },
+                   "_ignoreEvents" : {
+                     "type" : "array",
+                     "required" : false,
+                     "title" : "Events to Ignore",
+                     "items" : {
+                       "title": "Event",
+                       "type": "string",
+                       "required": false,
+                       "default": "navigationView:preRender",
+                       "validators": [],
+                       "inputType": "Text",
+                       "help": "Event that you want this channel to ignore."
+                     }
+                   }
+                 }
+               }
               }
             }
           }
