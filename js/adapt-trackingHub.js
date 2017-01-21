@@ -126,6 +126,7 @@ define([
 
     checkBrowserChannelConfig: function() {
       var bcconf = this._config._browserChannel;
+      browserChannelHandler._config = bcconf;  // just for convenience
       return this.checkCommonChannelConfig(bcconf);
     },
 

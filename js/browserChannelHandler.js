@@ -107,6 +107,8 @@ define([
     updateState: function() {
       // In this CH, a function to update the whole state at once is useful because we're going to have to do this constantly.
       // This representation is just a 'snapshot' of some attributes of all the components
+      if (!this._config._tracksState)
+          return;
       this._OWNSTATE = this.getUpdatedLocalState();
       Adapt.trackingHub._state[this._OWNSTATEKEY] = this._OWNSTATE ;
     },
