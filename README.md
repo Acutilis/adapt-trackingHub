@@ -1,195 +1,78 @@
 # adapt-trackingHub
 
-A flexible Adapt extension that implements the basic mechanisms for multichannel tracking, including xAPI. It is extensible, to allow for different models of tracking.
+A flexible Adapt extension that implements the basic mechanisms for multichannel tracking.
 
-This is only for the adapt framework (compatability for the authoring tool added by https://github.com/theodi/).  This is an early version, not intended to be used in production yet.
+TrackingHub itself implements  minimal local tracking in the browser (logging messages to the console, and storing the progress in localStorage). But its main characteristic is the  way of looking at _tracking_ (in general) it takes, and the infrastructure that it implements, because it allows for:
 
-Please note that this is neither endorsed nor supported by the official Adapt Project, it's just a 3rd party contribution.
+* different tracking extensions to be used at the same time
+* tracking events and state (_progress_) to be sent to more than one backend at the same time (_multichannel_ tracking).
 
-## Authoring tool installation
+It is relatively easy to develop alternative tracking extensions for trackingHub.
 
-Ddownload repository as a zip file and import the extension into the adapt authoring tool (v0.2.0+). In the authoring tool you can configure the extension from the configuration settings screen of a course. 
+The main tracking extension released along with trackingHub v0.2.0 implements **xAPI** tracking. It is available in a [separate repository](https://github.com/Acutilis/adapt-tkhub-xAPI). All xAPI-specific information is [there](https://github.com/Acutilis/adapt-tkhub-xAPI), but it is advisable to get familiar with the concepts introduced by trackingHub, explained in this document and in the [Wiki](#).
 
-## Command-line installation
+The adapt-trackingHub extension is compatible with the Authoring Tool. However, most of the testing so far has been done using the framework.
 
-Since this extension is in such an early stage, it has not yet been registered (it cannot be installed on the command line using 'adapt install').
+Please note that adapt-trackingHub is neither endorsed nor supported by the official Adapt Project, it's just a 3rd party contribution.
 
-To use it, get the code directly from GitHub, either downloading the zip file or cloning the repository.
 
-To play around with it, the easiest thing is to create a course:
+## Installation
 
-```
- adapt create course myTestCourse
- cd myTestCourse
- grunt build
- cd src/extensions
- git clone https://github.com/Acutilis/adapt-trackingHub
-```
+With the Adapt CLI installed, run the following from the command line:
 
-The configuration shown in the example.json file seems long and complex, but your typical config will likely be much shorter. Please **be sure** to read the sections [Concepts] (https://github.com/Acutilis/adapt-trackingHub#concepts) and [Related repositories] (https://github.com/Acutilis/adapt-trackingHub#related-repositories) below to understand how tracking with this extension works, and thus how to use the configuration.
+`adapt install adapt-trackingHub`
 
-## Concepts
+To use it with the Authoring Tool, here in the github repository page click on 'Clone or download' and then click on the  'Download ZIP'. Upload that zip file to the Authoring Tool using the Plugin Manager. Within your course, click on 'Manage Extensions' and click on the green 'Add' button that appears to the right of adapt-trackingHub. Then open the 'Configuration Settings' for your course, and find the 'Extensions' section, click on the **tracking-Hub** button and configure it. 
 
-What I want with this extension is to implement detailed, multi-channel tracking for Adapt courses. Here is an explanation of what this means and what it entails, so it's easier to understand the gist of this extension.
 
-### Multichannel Tracking
-In the context of Adapt and this extension, I use the term _tracking_ in a fairly general sense, meaning _to record what's happening in the client (Adapt course), and transmitting this information to one or more destinations_. So, the idea is to be able to _log_ what the user is doing while she is interacting with the course. This type of tracking goes beyond the widely used practice of recording _completion_ and _pass/fail_ data. This is indeed close to the basic idea of [xAPI] (https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md) (eXperience API, also known as TinCan API), recording _streams of activities_ etc.
+## Main Concepts
 
-Of course it's not always necessary to track that much detail about course usage, but sometimes -as I'll explain later- it might be required, or just convenient. I particularly want to have this option, that's why I wanted to have an extension like this.
+This brief explanation of the main concepts of trackingHub will help you understand the settings section below.
 
-Also, traditionally (at least in the context of LMSs and SCORM), the tracking data get sent to just one place: the LMS. With xAPI, we know that this is no longer the case: Learning Record Stores receive statements from Activity Providers. Nothing prevents Activity Providers to send data to more than one LRS at the same time. The only requirement to do so is that the Activity Provider is _enabled_ for it, that is, it is programmed to handle more than one LRS at the same time (_multi LRS_ tracking).
+A **central** concept in trackingHub is the _channel_.  You can think of a _channel_ as a _destination for the tracking data_, so to speak. So, a channel can be the browser itself, or an LRS, or a custom backend you write, or any system with an API where you can send data. Anyway, you get the idea, but please [see Wiki](#) for more in-depth information. 
 
-This is all fine, but an LRS is an xAPI thing, it implements a particular API (actually, four APIs), and it expects information in a particular format (e.g., xAPI statements). I want to track events as they happen in the course, and maybe I want to use xAPI and an LRS, or maybe not! maybe I don't want to express this information as an _xAPI statement_... maybe I want to send that information to a system that is not an LRS.
+Obviously, trackingHub cannot implement the specific details of communication with the various _types_ of channels. This is done in external Adapt extensions that follow some conventions to be 'compatible' with trackingHub. We call these extensions _Channel Handlers_, because they implement the details of how to handle a specific type of channel. For example, there's one such extension, [adapt-tkhub-xAPI](#) that implements interaction with an LRS, thus implementing xAPI tracking. It is fairly easy to develop a _channel handler_ for your custom backend, or to clone an existing one and modify it to fit your needs.
 
-When you look at it like that, xAPI seems to be -in a way- a _particular case_ of something more general. This extension is an attempt to start implementing that _something more general_, and also xAPI, because it is actually becoming very important.
+As a general rule, you can have an arbitrary number of channels active in your course. For example, you _could_ configure your course to send xAPI statements to 2 or 3 LRSs at the same time. That is, trackingHub does not limit the number of channels types and channels of each type that you can use. The most common use case, though, is to use only one channel of each type. 
 
+A channel, then, will be 'tied' to a _channel handler_, that is, it will be directly related to another extension (not directly to trackingHub). Therefore, the _configuration_ (_settings_) for a channel will be done in the _corresponding extension_. For example, if you want to do xAPI tracking, you will need to install the [adapt-tkhub-xAPI extension](#) for trackingHub, and then any xAPI channels that you want to define (configure), will be defined and configured in the adapt-tkhub-xAPI extension.
 
-### The three basic concepts
-Let's get a little closer to the organization of the code and how things are named in the context of the trackingHub extension.
+So, to summarize:
+- The specifics for different backends is implemented in separate Adapt extensions called Channel Handlers
+- It is in the configuration of the channel handlers where you define the channels that you want to use with that 'type of backend'.
+- TrackingHub just orchestrates the work of an arbitrary number of channel handlers, each of which can define an arbitrary number of channels.
 
-In terms of the Adapt course, we just want to listen to certain Events, and when they happen, we want to express or represent what has happend in a _message_. The messages can be formatted, or _composed_ in many different ways. In the context of trackingHub, the **MessageComposer** is a piece of code whose responsibility is to receive information about an event, and express it in a _message_ (and return that message to the calling function).
-If I allow the trackingHub extension to make use of more than one MessageComposer at the same time, then I will enable my Adapt course to express my tracking data in various different _formats_ at the same time.
+The **only one exception** to this rule is a special channel handler called `browserChannelHandler`:
+- This channel handler is a module within trackingHub (as opposed to an external extension), so it is always available (that is, you don't need to install any other extension).
+- There can only be one channel of this type (as opposed to an arbitrary number, the normal case)
+- It is configured in the configuration settings for trackingHub itself.
 
-Once a _message_ exists, I want to deliver it. Delivering means that I want to send that message to a certain system (endpoint), over a particular protocol and using a particular API. In the case of xAPI, for example, the endpoint would be an LRS, the transport would be HTTP, and the API, would be xAPI (using PUT, POST, GET, etc. as defined in the standard). I also could send the message to a different endpoint, using a different REST API, over HTTP too. Or I might want to send the message through a WebSocket to a particular WebSocket server. Or I might just want to pass the message to a JavaScript function. The **TransportHandler** is a piece of code whose responsibility is to take a _message_ (something, most likely an object, which contains information about an event) and _send_ it to and enpoint. The TransportHandlers implement the details of the API, communication, authorization, etc.
-If I allow the trackingHub extension to make use of more than one TransportHandler at the same time, then I will enable my Adapt course to send tracking information to different endpoints at the same time.
+This channel handler and channel are 'embedded' in trackingHub itself, even if it means being different to all other channel handlers, because this provides several advantages:
+- Just installing trackingHub you can see  the events that are tracked (on the console) and you can save the state to localStorage in the browser. 
+- The browserChannelHandler implements a simple but convenient (and fairly detailed) state (or 'state representation', that is, an object that reflects the progress of the user through the course). This state representation is shared among channel handlers, so it is available to your custom channel handler (please see the [Wiki](#) for more in-depth information).
+- This channel handler is fairly complete, albeit simple, so it is a good reference to see how a channes handler should work.
 
-Finally, I need a way to tell the trackingHub extension what MessageComposer to use with what TransportHandler. For example, if I want to use xAPI, I need a way to tell the trackingHub extension that my LRS endpoint needs to use messages composed according to xAPI (otherwise, the LRS will reject the information it receives). The artifact that lets me express the pairing of a MessageComposer and a TransporHandler is called a  **Channel**.
-If I allow the trackingHub extension to make use of more than one Channel at the same time, my Adapt course will be able to send messages formatted in any way to any destination, in any combination, at the same time. This is the type of detailed multi-channel tracking I want.
 
-It might seem overkill, and certainly we won't need our courses to send data formatted in a million formats to a zillion endpoints, but the flexibility that this gives us as developers is pretty interesting.
+## Settings Overview
 
-The trackingHub extension reads all the information about channels from the configuration file.
+There are three global settings for trackingHub, and then the specific configuration for the default channel _browserChannel_:
 
-### Message composers
-The trackingHub extension bundles two messageComposers that are always available:
-- **string-messageComposer**: simple composer that expresses the messages as simple strings. Most appropriate for simple logging, particularly, for logging to the console.
-- **xapi-messageComposer**: expresses the messages as xAPI statements.
+- `_isEnabled`: True or false (defaults to true). To enable/disable all trackingHub tracking globally in the course.
+- `_courseID`: A _unique_ id for your course. In the  Authoring Tool, the format of this setting has been constrained to be URL, since it is a very convenient method of constructing a unique ID.
+- `_identifyById`: For tracking, it is necessary to identify components uniquely, and that _identification_ should be mostly permanent. The `_id` attribute is unique, but -at least in the Authoring Tool- is not permanent (the AT generates new IDs every time you publish), so it's not such a good property to use. If `_identifyById` is set to `true`, trackingHub will be forced to use the `_id` property to identify components. If set to false (the default), it will use the `title` attribute. This has one **important consequence**: all components must have a title, and the title must be unique in the course. The Authoring Tool requires the title, but it does not check for uniqueness. If you use the Framework directly, the course will be built even if components are missing the `title`. So, if `_identifyById` is false, which it should, trackingHub will check the `title` attributes of all components, and alert you if any one is missing or there are duplicates.
+- `_browserChannel`: An object with the configuration attributes for the special default channel called _browserChannel_.
 
-A message composer is fairly simple. It just needs a `compose` function (which will be called by the main trackingHub code). This function acts like a dispatcher: it takes information about an event, and depending on that, it calls a specific composing function, which builds the message, or part of the message, specifically corresponding to that event. Then the main `compose` function, just returns the message to the calling function.
+The configuration settings for `_browserChannel` are:
+- `_isEnabled`: True or false (defaults to true), used to enable/disable this channel. 
+- `_tracksEvents`: True or false (defaults to true). To track events means listening for Adapt events, creating _messages_ (that somehow represent what has happened) and sending those messages to the endpoint of the channel. For this channel, the endpoint or destination is the console. So, setting this to true will console.log the events as they happen.
+- `_tracksState`: True or false (defaults to true). Tracking state means updating the internal state representation implemented by this channel handler. Note that if you are only using this channel, and set `_trackState` to false, no state information will be saved to localStorage.
+- `_isStateSource`: True or false (defaults to false).  _State_ is a representation of the progress of a user through the course (see [the wiki](#) for more information). If this setting is `true`, the state information will be read through this channel. In the _browserChannel_ the state representation will be read from localStorage.  **Important**: only **one** channel should have this option set to _true_.
+- `_isStateStore`: True or false (defaults to false). Set it to true if you want to save the state through this channel. State can be saved to more than one channel at the same time, but take into consideration that this will create more traffic. In the _browserChannel_, the state will be saved to localStorage.
+- `_isLaunchManager`: True or false (defaults to false). If set to true, this channel will be responsible for performing the _launch sequence_, whose purpose is to obtain the user identity, and possibly other information needed for the channel to operate. In the case of the _browserChannel_, the launch sequence just sets up a hardcoded user identity. Its hardly useful. The most common case is that the _launch sequence_ is performed by some other channel handler. **Important**: Only one channel should be set to be the launch manager.
+- `_ignoreEvents`: An array of strings which are the event names that we want this channel to ignore. 
 
-If trackingHub only used pre-defined messageComposers like this, it would be pretty limited, or we would need to expand this extension every time we wanted to incorporate a new messageComposer. This is not the case, because because other extensions can _add themselves_ as messageComposers to trackingHub, and therefore anybody can write _external_ messageComposers (extensions).
 
-An example of such an _external_ messageComposer is [adapt-simpleJSONMessageComposer] (https://github.com/Acutilis/adapt-simpleJSONMessageComposer), which expresses the messages as fairly simple JSON objects. The information they contain is pretty much the same as an xAPI statement, but much less verbose. It illustrates how you can create a composer that adds the exact information you need for your tracking purposes.
+## Further information
 
-### Transport Handlers
-The trackingHub extension bundles two tranportHandlers that are always available:
-- **consoleLog-transportHandler**: It is the simplest transport handler. It just calls console.log with the message it receives.
-- **localStorage-transportHandler**: Stores state on localstorage and loads it again when you refresh, logs all other messages to the console.
-- **xapi-transportHandler**: Implements communication with an LRS, using xAPI.
+This document just includes the most basic, bare-bones information needed to get started with trackingHub. It is recommended to read the [Wiki](#), as it provides much more in-depth explanations of some of the ideas implemented in trackingHub. 
 
-A transportHandler has a function called `deliver`, which just takes the message and the channel. With that, it has enough information to deliver the message.
-The transport handler may also implement the saveState and loadState functions, if it wants to implement such functionality.
-
-If you look at the xapi-transportHandler code, it looks deceptively short and simple. It's just because the heavy lifting is done by the underlying [xAPI wrapper library] (https://github.com/adlnet/xAPIWrapper), from ADL. In this simple version of the transportHandler, we're just calling the right functions.
-
-However, a more advanced version of the transportHandler should (will) have more responsibility. For example, as I [explained somewhere else] (http://www.jpablo128.com/xapi-has-great-potential-but-it-is-not-magic/), things don't happen magically in xAPI. If you want an xAPI-enabled experience to _work offline_ and keep the tracking data until a connection is established again, then you have to program that. That kind of functionality belongs in the transportHandler: instead of delivering the message directly, it should check the connection, and keep a queue of messages locally (on localStorage for example) and try to deliver them when there's a connection, and remove them from the queue when delivery has been confirmed... etc. So, at this point, the xapi-transportHandler is fairly simple, but it _should_ incorporate more functionality to make it smarter (even if it uses the ADL xAPI wrapper). For starters, it should do the calls to the LRS asynchronously (at this early stage, it's just doing synchronous calls).
-
-As with messageComposers, other extensions can _add themselves_ as transportHandlers to trackingHub, so we have the flexibility to write _external_ transport handlers without altering the core trackingHub code.
-
-An example of such an _external_ transportHandler is [adapt-simplePOSTTransportHandler] (https://github.com/Acutilis/adapt-simplePOSTTransportHandler), which implements a simple mechanism to send the messages to a server with a very simple API. It also implements saveState and loadState. Keep in mind that a transportHandler is always coupled with its serverside counterpart, so if you write a transporHandler, you might need to write the server too. Or not. In theory it should be possible to write a transportHandler to send messages to existing APIs (e.g. slack, evernote, a logging service like loggly or papertrailapp...). 
-
-### Channels
-
-As mentioned before, a **Channel** defines a pairing of a messageComposer and a transportHandler, so you can mix things. One caveat is that if the endpoint expects data in a certain _format_, then you should use the corresponding messageComposer. For example in xAPI, if the statements are not right, the LRS won't store them. But if your transportHandler and corresponding server-side code accept anything, then you can basically do remote logging of messages in any format. For example, the related [adapt-simplePOSTTransportHandler] (https://github.com/Acutilis/adapt-simplePOSTTransportHandler) and the server it includes will just take any json.
-
-You can define more than one channel in the configuration file, as will be explained soon, and you can enable and disable channels independently. This allows trackingHub to send messages to various endpoints at the same time. For example, using just the bundled messageComposers and trasportHandlers, you can do xAPI tracking, sending xAPI statements to one or more LRSs (saving/loading progress data is also implemented). Or you can see simple logging on the console. Or, you can define a channel so that you can see your xAPI statements on your console (using xapi-messageComposer and consoleLogTransportHandler).
-
-## Configuration
-
-The configuration for trackingHub only has three items at the top level:
-- `_isEnabled`: To enable/disable the whole extension.
-- `_courseID`: A (globally)  _unique_ id your your course.
-- `_channels`: An array with the configuration for each channel.
-
-Each channel has its own configuration. The configuration items for each channel are:
-- `_name`: An arbitrary name for the channel.
-- `_isEnabled`: To enable/disable the channel.
-- `_msgComposerName`: Each messageComposer has a `_NAME` property to identify it. In this configuration option we indicate the name of the composer we want for this channel.
-- `_saveStateIsEnabled`: True or false, to indicate whether we want the state (progress) to be saved on this channel.
-- `_isStateSource`: True or false, to indicate that this channel is the one from which the course should load the saved state, if it exists. **Important**: there should only be **one** channel with this property set to true.
-- `_transport`: An object with information about the transport. Note that the specific concept of _transport_ in the configuration basically allows us to _group_ things that are needed to _deliver_ the message: the transportHandler, the endpoint, and the authorization (only the name of the transportHandler is mandatory). This obviously allows us to use _several instances of the same type of tracking_ at the same time. For example, we can send xAPI statements to several different LRSs.
-  - `_handlerName`: Each transportHandler has a `_NAME` property to identify it. In this configuration option, we indicate the name of the transportHandler we want to use for this channel.
-  - `_endpoint`: The url of the endpoint (e.g. "http://10.0.3.22/data/xAPI/"). It may be empty, because a transport handler might not need one. For example, the consoleLogTransportHandler doesn't need one. Any transportHandler that just calls a JavaScript function in its `deliver` function won't need and endpoint (the _endpoint_ is the JavaScript function itself, and it's obviously _embedded_ in the transportHandler code).
-  - `_auth`: Some endpoints might implement authentication. This `_auth` object in the configuration contains any information that the transport handler might need to perform this authentication. The bundled xapi-transportHandler uses Basic HTTP authentication, so the auth configuration for an endpoint that uses this transportHandler should indicate the username and the password. Note that each transportHandler might implement different authentication schemes, so what goes into the `_auth` section might be different for different transportHandlers.
-    - `_username`: The username (for Basic Authorization, in xAPI)
-    - `_password`: The password (for Basic Authorization, in xAPI)
-- `_ignoreEvents`: An array with the events that we want to _ignore_ (not track) from the list of default track messages that are defined at the beginning of `adap-trackingHub.js`. With this, we can limit the vebosity of our tracking. Or keep detailed tracking on one backend, and just track more general events on another backend.
-
-Hopefully, the example configuration file does'n look so scary now.
-
-## User identification
-
-One of the fundamental differences between xAPi-style tracking and traditional SCORM tracking is the role of the LMS. SCORM content _does depend_ on an LMS. In fact, it is the LMS the one who _launches_ the SCO, and it is the LMS's responsibility to provide the SCORM API. The content has the responsibility of _finding_ the API, and then using it according to the SCORM spec. This way, the content can make calls using the API to retrieve user identification information (the user has logged into the LMS, and therefore her identity is known, and can be passed on to the content). 
-
-On the other hand, xAPI-enabled content _does not depend on an LMS_. Due to the very nature of xAPI, anything can be an Activity Provider, from a web course (e.g. Adapt), to a simulator of an industrial instrument panel (or even the instrument panel itself), and therefore anything can send xAPI statements to the LRS. But, still, the user of the activity **must** be identified (the Actor property of a statement is mandatory, and in many cases it will be an Agent -most likely a person-). So, in an xAPI scenario (or xAPI-like scenario, such as trackingHub) user identification **is not** part of the content, it cannot be embedded in the content, and therefore it must be resolved outside.
-
-There are several mechanisms to allow LMSs (or other systems) to launch xAPI content providing the information it needs as launch parameters. See for example the [xAPI SCORM profile] (https://github.com/adlnet/xAPI-SCORM-Profile/blob/master/xapi-scorm-profile.md#40-launching-and-initializing-activities), [CMI-5] (https://github.com/AICC/CMI-5_Spec_Current/blob/quartz/cmi5_spec.md#content_launch) and [Rustici Software's launch mechanism] (https://github.com/RusticiSoftware/launch/blob/master/lms_lrs.md).
-
-As far as trackingHub is concerned, and regardless of the type of tracking it does (whether it's xAPI or other), it also needs to get the user information from somewhere. At this point, the trackingHub extension gets the user information from the URL parameters (query string). So, to test tracking with a specific user, launch your course with something like this:
-
-`http://localhost:9001/?actor=%7B%22mbox%22%3A%22mailto%3Ajohn%40doeland.com%22%2C%22name%22%3A%22John%20Doe%22%2C%22objectType%22%3A%22Agent%22%7D`
-
-If **no user** is specified in the URL parameters, trackingHub will set  **random user information**. An **important** consequence of this is that, to check out the state save/load capabilities (storing and restoring progress data), **you should use the same user** (use the same launch string).
-
-The trackingHub extension, at this point, takes advantage of the ADL xAPIWrapper, which automatically parses the query string for some known (or expected) parameters, and then initializes the corresponding data structures. 
-
-In a real scenario, an Adapt Course will most likely be launched from either an LMS or another custom system (where somebody logs-in, and can access the courses he's authorized to launch). But this 'custom system' is conceptually (regarding the launch of content) an LMS, so the use of query string parameters might still be appropriate.
-
-Still, there might be cases in which we would want to implement user identification differently (e.g. grabing an http header). In such case, the mechanism is outside the scope of trackingHub. You would have to write your specific extension to handle that. But trackingHub exposes a function called `setActor` (not implemented yet), so any external code can do its thing to identify the user, and then call setActor to tell trackingHub the identity of the user.
-
-
-## More extensibility
-
-We've seen how we can use a configuration option to limit the events that are tracked. However, in my opinion, it's important to be able to track arbitrary events. This way, custom extensions or components could somehow tell trackingHub "hey, I will be triggering these custom events, I want you to track them". Turns out this is fairly straightforward. The trackingHub extension exposes a function called `addEventListener`, through which anybody (an extension or component) can add _tracked events_ to trackingHub. But this is not enough. What happens when a tracked event is triggered? trackingHub **must** call a messageComposer, to compose the message for that event. In turn, the main `compose` function in the messageComposer must call a specific composing functions, that _knows_ how to represent the information for that specific event. Therefore, the custom extension or component who wants its customs events tracked, must **also** provide a _custom composing function for each custom event it wants to track_ to each messageComposer. Sounds complicated but it's not. In essence, the custom extension or component (e.g., a hypothetical simulator) should say something like this:
-
-```
-trackingHub.addCustomEventListener(this,  'switch1ON');
-trackingHub.addCustomEventListener(this,  'switch1OFF');
-trackingHub.addCustomEventListener(this,  'pressureKnobTurned')
-.
-.
-.
-xapi-MessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeXapiSwitch1on)
-xapi-MessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeXapiSwitch1off)
-xapi-MessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeXapiPressureKnobTurned)
-.
-.
-.
-simpleJSONMessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeSjsonSwitch1on)
-simpleJSONMessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeSjsonSwitch1off)
-simpleJSONMessageComposer.addCustomComposingFunction(this, 'switch1ON', this.composeSjsonPressureKnobTurned)
-```
-
-And then it must implement those specific _message composing_ functions.
-
-With this approach, we can plug custom/detailed tracking into the trackingHub general infrastructure. I did an example/test of this with a custom extension, and it works. In the near future I hope to release an example extension and an example component that does this.
-
-That's it for tracking custom events.
-
-I also would want custom components and extensions to be able to save custom _state_ information. Right now this is not implemented, but I presume that custom state saving will be somewhat analogous to custom event tracking.
-
-The point of this is to enable future plugins (mainly components, but maybe also extensions) to be able to provide detailed tracking data, an to save and load arbitrarily complex state representations. Think of a component that implements a simulation. Or a component that allows a complex branching scenario, and we want to keep track not only of the final result, but of all the paths and retries that the learner takes.
-
-## Related repositories
-
-Other separate but related repositories are:
-
-- [adapt-simpleJSONMessageComposer] (https://github.com/Acutilis/adapt-simpleJSONMessageComposer): An Adapt extension that implements a messageComposer.
-- [adapt-simplePOSTTransportHandler] (https://github.com/Acutilis/adapt-simplePOSTTransportHandler): An Adapt extension that implements a transportHandler that uses a very simple REST API. This repo also includes a very simple server (written in Python) that implements that simplePOST API, for the above handler.
-
-## Is this necessary?
-
-Obviously, the basis of trackingHub is largely influenced by xAPI, and more generally, by the trend to track _what's happening_ (streams of activities) and not only _results_. xAPI is becoming very important, but it's not the only solution for this type of tracking. There's also IMS Caliper (I admit I'm not familiar with it).
-
-But... from the increasing relevance of xAPI,  do we need to jump to  _detailed, multi-channel, multi-format_ tracking in Adapt? Well... again, the point is not to have a technical extravaganza that lets us send messages in different formats to different places at the same time _just because_ we can do it. There are certain situations (not immediately obvious) where all this functionality could be put to good use. Here are some examples.
-
-- In some situations, we might need to do xAPI tracking, but we need to do some server-side processing before sending the statements to the LRS. For example, if we need sign the statements. In this case, we can send tracking info in a compact form from the course to the server, and have a server-side process that creates the statements and signs them before sending them to the LRS.
-- We might not be able to send statements directly from the course to the final LRS. for example, when the client's LRS is sitting behind a firewall, and they want to use a course that we host. We can send xAPI statements from the course to an intermediate LRS (that we host), and our client's LRS can pull the information from our intermediate LRS every night. They get their statements, and they don't need to set up permissions etc. for external content to access their internal LRS.
-- We just want to do simple analytics. We can send tracking info in some compact form to our server-side process, so it can be aggregated and analyzed. We don't need to rely on xAPI for that.
-- Granularity is not clear. How much data should we track in our new course? Sometimes it's hard to know. With something like trackingHub, we can send a moderate amount of data to the LRS (so we don't overburden it with lots of details that we're not sure we're going to need) , but at the same time we send all the detailed data, in a compact form, to a simple server-side process that just stores it. If, later, it turns out that the xAPI statements are not detailed enough to answer the questions we need to answer (through data analysis), we could grab all the detailed data we saved and generate xAPI statements from it (or just analyze those data directly).
-- We want use events tracked in the course to perform some non-traditional action, such as posting a message to a Slack channel, to notify somebody that the learner finished the course, for example.
-
-Hopefully, these scenarios provide a better insight of my thinking behind trackingHub.
-
-## Work in Progress
-This extension, as it is, v0.0.1, is functional but very rough. I've seen it tracking disparate sets of events to the console, an LRS, and three instances of simplePOSTTransporServer (each instance receiving messages in a different format). It's nice. But it is version 0.0.1. I already have a long list of fixes/improvements that I see need to be done. And I'm sure there are many other things that I don't see, so your comments and contributions are welcome.

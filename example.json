@@ -1,91 +1,22 @@
 // to be added to course/config.json
 
-// This example includes multiple channels, just to show various possibilities.
-
 {
 
-	"_trackingHub": {
-		"_isEnabled": true,
+    "_trackingHub": {
+        "_isEnabled": true,
         "_courseID" : "http://www.acme.com/courses/4f4f4f",
-        "_channels": [
+        "_identifyById": false,
+        "_browserChannel": {
+            "_name": "browserChannel",
+            "_isEnabled": true,
+            "_tracksEvents": true,
+            "_tracksState": true,
+            "_isStateSource": true,
+            "_isStateStore": true,
+            "_isLaunchManager": true,
+            "_ignoreEvents": []
+        }
+    }
 
-            { 
-                "_name": "defaultclientConsole",
-                "_isEnabled": false,
-                "_msgComposerName": "stringMessageComposer",
-                "_transport": { "_handlerName": "localStorageTransportHandler",
-                                "_endpoint": "",
-                                "_auth": { }
-               },
-                "_saveStateIsEnabled": false,
-                "_isStateSource": false
-            },
-            { 
-                "_name": "LRS",
-                "_isEnabled": false,
-                "_msgComposerName": "xapiMessageComposer",
-                "_transport": { 
-                                "_handlerName": "xapiTransportHandler",
-                                "_endpoint": "http://10.0.3.22/data/xAPI/",
-                                "_auth": {
-                                           "_username": "01d16b00ea6196ae808421fe9a0003eac7a880f3",
-                                           "_password": "7e0e147d913a7056d1851ab495d2a531262ed5b7"
-                                }
-                },
-                "_saveStateIsEnabled": true,
-                "_isStateSource": true
-            },
-
-            { 
-                "_name": "zeroCustomPOST",
-                "_isEnabled": false,
-                "_msgComposerName": "stringMessageComposer",
-                "_transport": { 
-                                "_handlerName": "samplePOSTTransportHandler",
-                                "_endpoint": "http://10.0.3.220:8000",
-                                "_auth": { }
-                },
-                "_saveStateIsEnabled": true,
-                "_isStateSource": false
-            },
-
-            { 
-                "_name": "oneCustomPOST",
-                "_isEnabled": false,
-                "_msgComposerName": "simpleJSONMessageComposer",
-                "_transport": { 
-                                "_handlerName": "samplePOSTTransportHandler",
-                                "_endpoint": "http://10.0.3.220:8001",
-                                "_auth": { }
-                },
-                "_saveStateIsEnabled": true,
-                "_isStateSource": false
-            },
-
-            { 
-                "_name": "twoCustomPOST",
-                "_isEnabled": false,
-                "_msgComposerName": "xapiMessageComposer",
-                "_transport": { 
-                                "_handlerName": "samplePOSTTransportHandler",
-                                "_endpoint": "http://10.0.3.220:8002",
-                                "_auth": { }
-                },
-                "_saveStateIsEnabled": true,
-                "_isStateSource": false,
-                "_ignoreEvents": [
-                  "router:menu",
-                  "router:page",
-                  "questionView:complete",
-                  "questionView:reset",
-                  "assessments:complete",
-                  "assessments:reset",
-                  "questionView:recordInteraction",
-                  "change:_isComplete",
-                  "change:_isInteractionComplete"
-                ]
-            }
-        ] 
-    },
 }
 
