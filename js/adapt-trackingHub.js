@@ -135,7 +135,7 @@ define([
       // This function will also be called from other tracking extensions
       if (chConfig._name == undefined) {
           // not a breaking problem, but do report the issue
-          chConfig._name = genUUID();
+          chConfig._name = this.genUUID();
           console.log('No name provided for a channel. You should set a name for the channel!');
       }
       if (chConfig._isEnabled == undefined)

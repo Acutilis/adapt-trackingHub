@@ -48,15 +48,8 @@
                 "_browserChannel" : {
                   "type" : "object",
                   "required" : false,
+                  "title": "BrowserChannel (default)",
                   "properties" : {
-                    "_name" : {
-                     "type" : "string",
-                     "inputType" : "Text",
-                     "title" : "Channel name",
-                     "default" : "Channel",
-                     "validators" : [ "required" ],
-                     "help" : "A one-word name for the channel."
-                    },
                    "_isEnabled" : {
                      "type" : "boolean",
                      "required" : true,
