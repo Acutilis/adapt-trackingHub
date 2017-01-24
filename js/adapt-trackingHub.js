@@ -9,7 +9,6 @@ define([
     _state: {},
     _sessionID: null,
     _config: null,
-    //_channel_handlers: {},
     _channel_handlers: [],      // references to the existing channel handler modules
     _channels: [],              // configuration for each channel
     _launchManagerChannel: null,
@@ -24,13 +23,8 @@ define([
         'navigationView:preRender',                    // opened course
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
-        // 'questionView:complete',
-        // 'questionView:reset',
         'assessments:complete',
-        // 'assessments:reset',
-        // 'questionView:recordInteraction'
        ],
-       //blocks: ['change:_isComplete'], // NO I SHOULDN'T TRACK blocks, it causes all kinds of problems! 
        course: ['change:_isComplete'],
        components: ['change:_isComplete'],
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
@@ -39,8 +33,6 @@ define([
 
     initialize: function() {
       this.addChannelHandler(browserChannelHandler);
-      //_.bindAll(this,'onConfigLoaded');
-      //  _.bindAll(this,'onSateApplied', 'setupInitialEventListeners');
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
     },
@@ -60,21 +52,6 @@ define([
       this._tkhubOK = true;
       return true;
     },
-
-/*
-    OLDonConfigLoaded: function() {
-      // just add the defined channels to trackingHub
-
-      _.each(this._config._channels, function addChannel (channel) {
-        if (this.checkChannelConfig(channel) && channel._isEnabled) {
-          this._channels.push(channel);
-          if (channel._isLaunchManager) { this._launchManagerChannel = channel };
-          if (channel._isStateSource) { this._stateSourceChannel = channel };
-          if (channel._isStateStore) { this._stateStoreChannel = channel };
-        }
-      }, this);
-    },
-*/
 
     processConfigs: function() {
       // check the config for each channel, and if it's ok, place it in the _channels array
@@ -118,7 +95,7 @@ define([
         : false;
       if (this._config && this._config._isEnabled !== false) {
         this._config._courseID = this._config._courseID || 'http://www.courses.com/' + this.genUUDI();
-        this._config._identifyById = this._config._identifyById || false; //this is WRONG!
+        this._config._identifyById = this._config._identifyById || false; // is this wrong?
         return true;
       }
       return false;
@@ -165,35 +142,6 @@ define([
       console.log('There are errors in the common channel settings for channel ' + chConfig._name + '.');
       return false;
     },
-
-/*
-    checkChannelConfig: function(channel) {
-      channel.has = channel.hasOwnProperty;
-      channel._ignoreEvents = channel._ignoreEvents || [];
-      if (channel._tracksEvents == undefined) {
-          channel._tracksEvents = true;
-      }
-      if (channel._isFakeLRS == undefined) {
-          channel._isFakeLRS = false;
-      }
-      if(((_.isArray(channel._ignoreEvents)) && 
-        (channel.has('_isEnabled') && _.isBoolean(channel._isEnabled)) &&
-        (channel.has('_name') && _.isString(channel._name) &&
-          !_.isEmpty(channel._name) ) &&
-        (channel.has('_handlerName') ) &&
-        ( _.isString(channel._handlerName) &&
-         !_.isEmpty(channel._handlerName) ))) {
-             return true;
-      }
-
-      var ch = this._channel_handlers[channel._name];
-      if (ch.hasOwnProperty('checkConfig')) {
-          specificChannelConds = ch.checkConfig(channel);
-      }
-      console.log('trackingHub Error: Channel configuration for channel ' + channel._name + ' is wrong.');
-      return false;
-    },
-*/
 
     checkStrictTitles: function() {
       var idsWithEmptyTitles = [];
@@ -267,17 +215,6 @@ define([
     /*******************************************
     /******* GENERAL  UTILITY  FUNCTIONS *******
     /*******************************************/
-/*
-    checkChannelHandlersLoaded: function() {
-        // if this_channelHandlers have all the keys that are in this._channelHandlersToLoad
-        // then all are loaded, and we can trigger the event.
-        var chsloaded = _.keys(this._channel_handlers);
-        if (!_.isEqual(chsloaded,[]) && _.isEqual(chsloaded, this._channelHandlersToLoad)) {
-            console.log('ALL CHANNEL HANDLERS LOADED');
-            this.trigger('allChannelHandlersLoaded');
-        }
-    },
-*/
 
     queryString: function() {
       // This function is anonymous, is executed immediately and 
@@ -335,7 +272,6 @@ define([
       if (this._stateSourceChannel) {
         var channelHandler = this._stateSourceChannel._handler;
         this.listenToOnce(channelHandler, 'stateLoaded', this.onStateLoaded);
-        //this.listenToOnce(this, 'stateApplied', this.onSateApplied);
         console.log('loading state...');
         channelHandler.loadState(this._stateSourceChannel, this._config._courseID);
       } else {
@@ -346,8 +282,7 @@ define([
 
     onStateLoaded: function(fullState) {
         console.log('state loaded');
-        // The FULL version of the state is saved/loaded. Then each ChannelHandler (including trackingHub) will 
-        // deal with its 'own' part
+        // The FULL version of the state is saved/loaded. Then each ChannelHandler  will deal with its 'own' part
         this._state = fullState;
         this.trigger('stateReady');
         console.log('state ready');
@@ -356,7 +291,7 @@ define([
     },
 
     applyStateToStructure: function() {
-        // call every channel handler (channelHandler) to apply its particular state representation
+        // call every channel handler to apply its particular state representation
         _.each(this._channel_handlers, function(chandler, name, list) {
           if(chandler.applyStateToStructure) {
             chandler.applyStateToStructure();
@@ -373,7 +308,6 @@ define([
       _.each(_.keys(this._TRACKED_MSGS), function (eventSourceName) {
         _.each(this._TRACKED_MSGS[eventSourceName], function (eventName) {
           this.addLocalEventListener(eventSourceName, eventName);
-          //_.defer(this.addLocalEventListener, this, eventSourceName, eventName);
         },this);
       },this);
 
@@ -426,43 +360,29 @@ define([
     },
 
     dispatchTrackedMsg: function(args, eventSourceName, eventName) {
-      // The STATE representation IS AFFECTED, or changed, by the EVENTS that happen on the structure.
-      // SO if every ChannelHandler has its OWN representation of STATE... then we must let the events PERCOLATE to each TH so it can AFFECT its state representation.
-      //
       var chandler;
       var message;
       var channelConfig;
 
-      // TODO: add default processing for events in trackinghub... something like:
-      // if (this._config._doDefaultEventProcessing) { this.processEvent(channel, eventSourceName, eventName, args) }
       _.each(this._channels, function (channel) {
-        // TODO: Remove functionality for ignoring events. Efectively, if there's no handler for them they
-        // are ignored, and the checking takes more processing than not doing anything.
         var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
         if ( !isEventIgnored && channel._tracksEvents ) {
           channel._handler.processEvent(channel, eventSourceName, eventName, args);
         }
       }, this);
-      // At this point in time, trackingHub and all channels have processed (or not) the event, so the whole representation of state is updated.
+      // At this point in time, all channels have processed (or not) the event, so the whole representation of state is updated.
       // So trackingHub can invoke the Save functionality, (although the specific save is performed by a concrete channel).
       this.saveState();
     },
 
-/*
-    getChannelHandlerFromChannelHandlerName: function (chname) {
-      return (this._channel_handlers[chname]);
-    },
-
-*/
     addChannelHandler: function (ch) {
       // this function is here so other extensions (implementing ChannelHandlers) can call it to add themselves to trackingHub
-      // this._channel_handlers[ch['_CHID']] = ch;
       this._channel_handlers.push(ch);
-      // this.checkChannelHandlersLoaded();
     },
 
     saveState: function() {
-      // TODO: implement configurable functionality to throttle saving somehow, that is, save only once every X times this function is called...
+      // TODO: implement configurable functionality to throttle saving somehow, that is, save only 
+      // once every X times this function is called, for example
       _.each(this._channels, function(channel) {
         if (channel._isStateStore) {
           channel._handler.saveState(this._state, channel, this._config._courseID);

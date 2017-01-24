@@ -79,7 +79,6 @@ define([ 'coreJS/adapt'
     },
 
     components_change__isComplete: function (args) {
-      //  return ("completed interaction " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;
@@ -101,7 +100,6 @@ define([ 'coreJS/adapt'
 
 
     Adapt_assessments_complete: function (args) {  // plural
-      // return ("completed assesment " + args.id);
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;
@@ -121,7 +119,6 @@ define([ 'coreJS/adapt'
     },
   
     blocks_change__isComplete: function (args) {
-      // return ("completed block " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;
@@ -133,7 +130,6 @@ define([ 'coreJS/adapt'
     },
   
     contentObjects_change__isComplete: function (args) {
-      // return ("completed block " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;
@@ -145,7 +141,6 @@ define([ 'coreJS/adapt'
     },
 
     course_change__isComplete: function (args) {
-      //  return ("completed course " + args.get('_id'));
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;

@@ -20,7 +20,7 @@ define([
 
 
     checkConfig: function() {
-      // this especial handler must implement this function, like all handlers, but always returns true
+      // this special handler must implement this function, like all handlers. But in this case, it always returns true
         return true;
     },
 
@@ -36,18 +36,14 @@ define([
 
     startLaunchSequence: function(channel, courseID) {
       // This browser channelHandler should ONLY manage the launch sequence if it's used in isolation (no other channels).
-      // This handler stores the state in localStorage. 
-      // In general, the launch sequence determines de identity of the user. This CH, since it doesn't really do a launch sequence,
+      // This handler stores the state in localStorage.
+      // In general, the launch sequence determines de identity of the user. Since this CH doesn't really do a launch sequence,
       // we just set up a hardcoded user identity
       // If this channel is used along other channel that stores the state, the other channel will normally be the launch manager
       console.log('browserChannelHandler: starting launch sequence...');
       console.log('browserChannelHandler: launch sequence finished');
       Adapt.trackingHub.userInfo.mbox =  'mailto:somebody@example.com';
-      // mbox_sha1sum , openid, account
-
       this.trigger('launchSequenceFinished');
-
-      // AT THE END OF THE LAUNCH SEQUENCE TRACKINGhUB SHOULD HAVE AN ACTOR property?
     },
 
     /*******  END LAUNCH SEQUENCE FUNCTIONS *******/
@@ -67,10 +63,8 @@ define([
 
       // call specific event handling function for the event being processed, if it exists 
       funcName = Adapt.trackingHub.getValidFunctionName(eventSourceName, eventName);
-      // console.log('funcName = ' + funcName);
       // We only need to write event handling functions for the events that we care about
       // In this particular channes handler we don't need to do any specific processing for particular events.
-      // In other channel handlers, the 'specific processing' would in ois
       if (this.hasOwnProperty(funcName)) {
         this[funcName](args);
       }
@@ -83,7 +77,6 @@ define([
 
 
     deliverMsg: function(message, channel) {
-       // here show message.text, message
        console.log('browserChannelHandler: ', message.text, message);
     },
 
@@ -93,15 +86,15 @@ define([
     /*******************************************/
 
     initializeState: function() {
-        // Normally, this function would initialize our own state representation. That would be: state.basic
-        // But in this channelHandler we're NOT going to keep an internal representation per se, because we don't need
-        // to use specific state structures. When saving, we'll just save some attributes from the components.
-
+        // Normally, this function would initialize our own state representation, that is, it would set up a custom
+        // object with some keys and initial values that would be updated as the user progresses.
+        // But in this channelHandler, our state representation is a dump of several attributes for each component, and it
+        // gets re-built every time. There's no need to pre-initialize anything.
         return this.getUpdatedLocalState();
     },
 
     onStateReady: function() {
-      this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS channelHandler manages...
+      this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY]; // the part of state that THIS channelHandler manages.
     },
 
     updateState: function() {
@@ -119,13 +112,6 @@ define([
       // with the attributes that begin with '_'.
       var localState = {};
       _.each(Adapt.components.models, function(component) {
-          /*
-          var compKey = null;
-          Adapt.trackingHub._config._useId ? 
-              compKey = component.get('_id')
-              :
-              compKey = Adapt.trackingHub.titleToKey(component.get('title'));
-              */
         var compKey = Adapt.trackingHub.getElementKey(component);
         // These are the attributes that we want to save (if they exist in the component)
         var atts = [
@@ -167,7 +153,6 @@ define([
       // IF we want this channelHandler to be  capable of saving state, we have to implement this function.
       // IMPORTANT: this function is always called from trackingHub NOT from within this channel handler!
       localStorage.setItem('state_'+ courseID, JSON.stringify(Adapt.trackingHub._state));
-      //Adapt.trigger('browserChannelHandler:saveStateSucceded');
       console.log('browserChannelHandler: state saved');
     },
 
@@ -187,7 +172,7 @@ define([
     applyStateToStructure: function() {
       this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY];
       var localState = this._OWNSTATE;
-      // Walk through all components, and update its '_' attributes with what ther is in localState.
+      // Walk through all components, and update its '_' attributes with what there is in localState.
       // process each item in localState, which is a component
       if (localState) {
           _.each(Adapt.components.models, function(component) {
