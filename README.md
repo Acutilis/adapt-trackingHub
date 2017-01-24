@@ -9,7 +9,7 @@ TrackingHub itself implements  minimal local tracking in the browser (logging me
 
 It is relatively easy to develop alternative tracking extensions for trackingHub.
 
-The main tracking extension released along with trackingHub v0.2.0 implements **xAPI** tracking. It is available in a [separate repository](https://github.com/Acutilis/adapt-tkhub-xAPI). All xAPI-specific information is [there](https://github.com/Acutilis/adapt-tkhub-xAPI), but it is advisable to get familiar with the concepts introduced by trackingHub, explained in this document and in the [Wiki](#).
+The main tracking extension released along with trackingHub v0.2.0 implements **xAPI** tracking. It is available in a [separate repository](https://github.com/Acutilis/adapt-tkhub-xAPI). All xAPI-specific information is [there](https://github.com/Acutilis/adapt-tkhub-xAPI), but it is advisable to get familiar with the concepts introduced by trackingHub, explained in this document and in the [Wiki](https://github.com/Acutilis/adapt-trackingHub/wiki).
 
 The adapt-trackingHub extension is compatible with the Authoring Tool. However, most of the testing so far has been done using the framework.
 
@@ -29,13 +29,13 @@ To use it with the Authoring Tool, here in the github repository page click on '
 
 This brief explanation of the main concepts of trackingHub will help you understand the settings section below.
 
-A **central** concept in trackingHub is the _channel_.  You can think of a _channel_ as a _destination for the tracking data_, so to speak. So, a channel can be the browser itself, or an LRS, or a custom backend you write, or any system with an API where you can send data. Anyway, you get the idea, but please [see Wiki](#) for more in-depth information. 
+A **central** concept in trackingHub is the _channel_.  You can think of a _channel_ as a _destination for the tracking data_, so to speak. So, a channel can be the browser itself, or an LRS, or a custom backend you write, or any system with an API where you can send data. Anyway, you get the idea, but please [see Wiki](https://github.com/Acutilis/adapt-trackingHub/wiki) for more in-depth information. 
 
-Obviously, trackingHub cannot implement the specific details of communication with the various _types_ of channels. This is done in external Adapt extensions that follow some conventions to be 'compatible' with trackingHub. We call these extensions _Channel Handlers_, because they implement the details of how to handle a specific type of channel. For example, there's one such extension, [adapt-tkhub-xAPI](#) that implements interaction with an LRS, thus implementing xAPI tracking. It is fairly easy to develop a _channel handler_ for your custom backend, or to clone an existing one and modify it to fit your needs.
+Obviously, trackingHub cannot implement the specific details of communication with the various _types_ of channels. This is done in external Adapt extensions that follow some conventions to be 'compatible' with trackingHub. We call these extensions _Channel Handlers_, because they implement the details of how to handle a specific type of channel. For example, there's one such extension, [adapt-tkhub-xAPI](https://github.com/Acutilis/adapt-tkhub-xAPI/wiki) that implements interaction with an LRS, thus implementing xAPI tracking. It is fairly easy to develop a _channel handler_ for your custom backend, or to clone an existing one and modify it to fit your needs.
 
 As a general rule, you can have an arbitrary number of channels active in your course. For example, you _could_ configure your course to send xAPI statements to 2 or 3 LRSs at the same time. That is, trackingHub does not limit the number of channels types and channels of each type that you can use. The most common use case, though, is to use only one channel of each type. 
 
-A channel, then, will be 'tied' to a _channel handler_, that is, it will be directly related to another extension (not directly to trackingHub). Therefore, the _configuration_ (_settings_) for a channel will be done in the _corresponding extension_. For example, if you want to do xAPI tracking, you will need to install the [adapt-tkhub-xAPI extension](#) for trackingHub, and then any xAPI channels that you want to define (configure), will be defined and configured in the adapt-tkhub-xAPI extension.
+A channel, then, will be 'tied' to a _channel handler_, that is, it will be directly related to another extension (not directly to trackingHub). Therefore, the _configuration_ (_settings_) for a channel will be done in the _corresponding extension_. For example, if you want to do xAPI tracking, you will need to install the [adapt-tkhub-xAPI extension](https://github.com/Acutilis/adapt-tkhub-xAPI) for trackingHub, and then any xAPI channels that you want to define (configure), will be defined and configured in the adapt-tkhub-xAPI extension.
 
 So, to summarize:
 - The specifics for different backends is implemented in separate Adapt extensions called Channel Handlers
@@ -49,7 +49,7 @@ The **only one exception** to this rule is a special channel handler called `bro
 
 This channel handler and channel are 'embedded' in trackingHub itself, even if it means being different to all other channel handlers, because this provides several advantages:
 - Just installing trackingHub you can see  the events that are tracked (on the console) and you can save the state to localStorage in the browser. 
-- The browserChannelHandler implements a simple but convenient (and fairly detailed) state (or 'state representation', that is, an object that reflects the progress of the user through the course). This state representation is shared among channel handlers, so it is available to your custom channel handler (please see the [Wiki](#) for more in-depth information).
+- The browserChannelHandler implements a simple but convenient (and fairly detailed) state (or 'state representation', that is, an object that reflects the progress of the user through the course). This state representation is shared among channel handlers, so it is available to your custom channel handler.
 - This channel handler is fairly complete, albeit simple, so it is a good reference to see how a channes handler should work.
 
 
@@ -66,7 +66,7 @@ The configuration settings for `_browserChannel` are:
 - `_isEnabled`: True or false (defaults to true), used to enable/disable this channel. 
 - `_tracksEvents`: True or false (defaults to true). To track events means listening for Adapt events, creating _messages_ (that somehow represent what has happened) and sending those messages to the endpoint of the channel. For this channel, the endpoint or destination is the console. So, setting this to true will console.log the events as they happen.
 - `_tracksState`: True or false (defaults to true). Tracking state means updating the internal state representation implemented by this channel handler. Note that if you are only using this channel, and set `_trackState` to false, no state information will be saved to localStorage.
-- `_isStateSource`: True or false (defaults to false).  _State_ is a representation of the progress of a user through the course (see [the wiki](#) for more information). If this setting is `true`, the state information will be read through this channel. In the _browserChannel_ the state representation will be read from localStorage.  **Important**: only **one** channel should have this option set to _true_.
+- `_isStateSource`: True or false (defaults to false).  _State_ is a representation of the progress of a user through the course. If this setting is `true`, the state information will be read through this channel. In the _browserChannel_ the state representation will be read from localStorage.  **Important**: only **one** channel should have this option set to _true_.
 - `_isStateStore`: True or false (defaults to false). Set it to true if you want to save the state through this channel. State can be saved to more than one channel at the same time, but take into consideration that this will create more traffic. In the _browserChannel_, the state will be saved to localStorage.
 - `_isLaunchManager`: True or false (defaults to false). If set to true, this channel will be responsible for performing the _launch sequence_, whose purpose is to obtain the user identity, and possibly other information needed for the channel to operate. In the case of the _browserChannel_, the launch sequence just sets up a hardcoded user identity. Its hardly useful. The most common case is that the _launch sequence_ is performed by some other channel handler. **Important**: Only one channel should be set to be the launch manager.
 - `_ignoreEvents`: An array of strings which are the event names that we want this channel to ignore. 
@@ -74,5 +74,5 @@ The configuration settings for `_browserChannel` are:
 
 ## Further information
 
-This document just includes the most basic, bare-bones information needed to get started with trackingHub. It is recommended to read the [Wiki](#), as it provides much more in-depth explanations of some of the ideas implemented in trackingHub. 
+This document just includes the most basic, bare-bones information needed to get started with trackingHub. It is recommended to read the [Wiki](https://github.com/Acutilis/adapt-trackingHub/wiki), as it provides more in-depth explanations of some of the ideas implemented in trackingHub. 
 
