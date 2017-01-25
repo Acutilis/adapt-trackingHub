@@ -1,8 +1,10 @@
 {
   "name": "adapt-trackingHub",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "framework": "^2.0.0",
   "homepage": "https://github.com/Acutilis/adapt-trackingHub",
+  "issues": "https://github.com/Acutilis/adapt-trackingHub/issues",
+  "repository": "git://github.com/Acutilis/adapt-trackingHub.git",
   "issues": "",
   "displayName" : "TrackingHub",
   "extension" : "trackingHub",

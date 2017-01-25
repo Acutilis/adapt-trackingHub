@@ -50,7 +50,7 @@ The **only one exception** to this rule is a special channel handler called `bro
 This channel handler and channel are 'embedded' in trackingHub itself, even if it means being different to all other channel handlers, because this provides several advantages:
 - Just installing trackingHub you can see  the events that are tracked (on the console) and you can save the state to localStorage in the browser. 
 - The browserChannelHandler implements a simple but convenient (and fairly detailed) state (or 'state representation', that is, an object that reflects the progress of the user through the course). This state representation is shared among channel handlers, so it is available to your custom channel handler.
-- This channel handler is fairly complete, albeit simple, so it is a good reference to see how a channes handler should work.
+- This channel handler is fairly complete, albeit simple, so it is a good reference to see how a channel handler should work.
 
 
 ## Settings Overview
