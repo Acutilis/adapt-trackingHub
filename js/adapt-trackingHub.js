@@ -15,6 +15,7 @@ define([
     _stateSourceChannel: null,
     _stateStoreChannel: null,
     _tkhubOK: false,
+    _settingUpListeners: false,
 
 
     // Basic, default tracked messages
@@ -26,6 +27,7 @@ define([
         'assessments:complete',
        ],
        course: ['change:_isComplete'],
+//       blocks: ['change:_isComplete'],
        components: ['change:_isComplete'],
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
     },
@@ -33,6 +35,7 @@ define([
 
     initialize: function() {
       this.addChannelHandler(browserChannelHandler);
+      _.bindAll(this,'turnOffSetupStage');
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
     },
@@ -287,7 +290,7 @@ define([
         this.trigger('stateReady');
         console.log('state ready');
         this.applyStateToStructure();
-        this.setupInitialEventListeners();
+        this.setupInitialEventListeners(); 
     },
 
     applyStateToStructure: function() {
@@ -304,6 +307,7 @@ define([
 
 
     setupInitialEventListeners: function() {
+      this._settingUpListeners = true; // turn on control flag
       console.log('setting up initial event listeners (for tracked messages)');
       _.each(_.keys(this._TRACKED_MSGS), function (eventSourceName) {
         _.each(this._TRACKED_MSGS[eventSourceName], function (eventName) {
@@ -314,8 +318,13 @@ define([
       this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
       console.log('FINISHED setting up initial event listeners...');
+      //this._settingUpListeners = false;
+      setTimeout(this.turnOffSetupStage, 120);
     },
 
+    turnOffSetupStage: function() {
+      this._settingUpListeners = false;
+    },
     getObjFromEventSourceName: function (eventSourceName) {
       var obj = null;
       // TODO: do this with an object? (name is key, value is the target object)
@@ -355,7 +364,11 @@ define([
       sourceObj = this.getObjFromEventSourceName(eventSourceName);
       this.listenTo(sourceObj, eventName, function (args) {
         // TODO: dispatchTrackedMsg should be processTrackedMsg
-        this.dispatchTrackedMsg(args, eventSourceName, eventName);
+        // only allow some events to be dispatched as the listeners are being set up.
+        var allowedEvents = ['router:menu', 'navigationView:preRender'];
+        if (!this._settingUpListeners || _.indexOf(allowedEvents, eventName)!=-1) {    //only dispatch if control flag is off (e.g. we're not in the initial setup stage)
+            this.dispatchTrackedMsg(args, eventSourceName, eventName);
+        }
       }, this);
     },
 
