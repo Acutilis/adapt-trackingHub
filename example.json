@@ -9,7 +9,7 @@
         "_browserChannel": {
             "_name": "browserChannel",
             "_isEnabled": true,
-            "_tracksEvents": true,
+            "_reportsEvents": true,
             "_tracksState": true,
             "_isStateSource": true,
             "_isStateStore": true,
