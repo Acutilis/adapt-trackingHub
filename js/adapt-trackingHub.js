@@ -20,7 +20,7 @@ define([
     // Basic, default tracked messages
     _TRACKED_MSGS: {
        Adapt: [
-        'navigationView:preRender',                    // opened course
+        'adapt:start',                                 // course launched
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
         'assessments:complete',
@@ -296,8 +296,10 @@ define([
       Adapt.trigger('plugin:endWait');
     },
 
-    onStart: function() {
+    onStart: function(args) {
       this.setupInitialEventListeners();
+      // Dispatch the event we missed
+      this.dispatchTrackedMsg(args, 'Adapt', 'adapt:start');
     },
 
     applyStateToStructure: function() {
