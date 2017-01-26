@@ -177,7 +177,7 @@ define([
       if (localState) {
           _.each(Adapt.components.models, function(component) {
             var compKey = null;
-            Adapt.trackingHub._config._useId ? 
+            Adapt.trackingHub._config._identifyById ? 
               compKey = component.get('_id')
               :
               compKey = Adapt.trackingHub.titleToKey(component.get('title'));
