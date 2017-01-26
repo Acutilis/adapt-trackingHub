@@ -183,7 +183,7 @@ define([
               compKey = Adapt.trackingHub.titleToKey(component.get('title'));
             var stateAtts = localState[compKey];
             _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
-              component.set(key, value, {'silent': true});
+              component.set(key, value);
             }, this);
           }, this);
           console.log('browserChannelHandler state applied to structure...');

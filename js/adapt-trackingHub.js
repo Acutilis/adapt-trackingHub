@@ -34,7 +34,8 @@ define([
     initialize: function() {
       this.addChannelHandler(browserChannelHandler);
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
-      this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
+      this.listenToOnce(Adapt, 'app:dataLoaded', this.onDataLoaded);
+      this.listenToOnce(Adapt, 'adapt:start', this.onStart);
     },
 
 
@@ -190,13 +191,17 @@ define([
     /*******  END CONFIG FUNCTIONS *******/
 
 
-    onDataReady: function() {
+    onDataLoaded: function() {
       // Check strict titles.
       if (!this._config._identifyById) {
           if (!this.checkStrictTitles()) {
               return
           }
       }
+
+      // Hold up setup while credentials and other key data is retrieved
+      Adapt.trigger('plugin:beginWait');
+
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
       if (this._launchManagerChannel) {
@@ -277,17 +282,22 @@ define([
       } else {
           this.onStateLoaded({});  // initialize the full state representation to an empty object
       }
-
     },
 
     onStateLoaded: function(fullState) {
-        console.log('state loaded');
-        // The FULL version of the state is saved/loaded. Then each ChannelHandler  will deal with its 'own' part
-        this._state = fullState;
-        this.trigger('stateReady');
-        console.log('state ready');
-        this.applyStateToStructure();
-        this.setupInitialEventListeners();
+      // The FULL version of the state is saved/loaded. Then each ChannelHandler  will deal with its 'own' part
+      console.log('state loaded');
+      this._state = fullState;
+      this.trigger('stateReady');
+      console.log('state ready');
+      this.applyStateToStructure();
+
+      // Retrieval completed
+      Adapt.trigger('plugin:endWait');
+    },
+
+    onStart: function() {
+      this.setupInitialEventListeners();
     },
 
     applyStateToStructure: function() {
@@ -298,7 +308,6 @@ define([
           }
         }, this);
     },
-
 
     /*******  END STATE MANAGEMENT FUNCTIONS *******/
 
