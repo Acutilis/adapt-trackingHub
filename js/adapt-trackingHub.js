@@ -120,8 +120,8 @@ define([
       }
       if (chConfig._isEnabled == undefined)
           chConfig._isEnabled = true;
-      if (chConfig._tracksEvents == undefined)
-          chConfig._tracksEvents = true;
+      if (chConfig._reportsEvents == undefined)
+          chConfig._reportsEvents = true;
       if (chConfig._tracksState == undefined)
           chConfig._tracksState = true;
       if (chConfig._isStateSource == undefined)
@@ -134,7 +134,7 @@ define([
 
       if ( ( _.isArray(chConfig._ignoreEvents)) && 
            ( _.isBoolean(chConfig._isEnabled)) &&
-           ( _.isBoolean(chConfig._tracksEvents)) &&
+           ( _.isBoolean(chConfig._reportsEvents)) &&
            ( _.isBoolean(chConfig._tracksState)) &&
            ( _.isBoolean(chConfig._isStateSource)) &&
            ( _.isBoolean(chConfig._isStateStore)) &&
@@ -378,10 +378,10 @@ define([
       var channelConfig;
 
       _.each(this._channels, function (channel) {
-        var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
-        if ( !isEventIgnored && channel._tracksEvents ) {
+//        var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
+//        if ( !isEventIgnored && channel._reportsEvents ) {
           channel._handler.processEvent(channel, eventSourceName, eventName, args);
-        }
+//        }
       }, this);
       // At this point in time, all channels have processed (or not) the event, so the whole representation of state is updated.
       // So trackingHub can invoke the Save functionality, (although the specific save is performed by a concrete channel).

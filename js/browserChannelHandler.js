@@ -56,11 +56,14 @@ define([
       //    - update our internal state representation
 
       // msgComposer is a reference to the message composer that this particular channel handler uses.
-      message = msgComposer.compose(eventSourceName, eventName, args)
-      if (message) {
+      // if REPORTS events and ! ignored!
+      var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
+      if ( !isEventIgnored && channel._reportsEvents ) {
+        message = msgComposer.compose(eventSourceName, eventName, args)
+        if (message) {
           this.deliverMsg(message, channel);
+        }
       }
-
       // call specific event handling function for the event being processed, if it exists 
       funcName = Adapt.trackingHub.getValidFunctionName(eventSourceName, eventName);
       // We only need to write event handling functions for the events that we care about
