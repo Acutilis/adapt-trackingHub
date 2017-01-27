@@ -112,7 +112,7 @@
                        "title": "Event",
                        "type": "string",
                        "required": false,
-                       "default": "navigationView:preRender",
+                       "default": "adapt:start",
                        "validators": [],
                        "inputType": "Text",
                        "help": "Event that you want this channel to ignore."
