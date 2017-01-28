@@ -59,14 +59,14 @@
                      "validators" : [],
                      "help" : "If set to 'false', trackingHub will not use this channel for tracking."
                    },
-                   "_tracksEvents" : {
+                   "_reportsEvents" : {
                      "type" : "boolean",
                      "required" : true,
                      "default" : true,
-                     "title" : "Tracks Events",
+                     "title" : "Reports Events",
                      "inputType" : { "type" : "Boolean", "options" : [ true, false] },
                      "validators" : [],
-                     "help" : "If set to 'false', this channel will ignore all events (it will not send 'messages' corresponding to events)."
+                     "help" : "If set to 'false', this channel will not report any events (it will not send 'messages' corresponding to events)."
                    },
                    "_tracksState" : {
                      "type" : "boolean",
