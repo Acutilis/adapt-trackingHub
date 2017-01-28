@@ -20,25 +20,25 @@ define([
 
     // Basic, default tracked messages
     _TRACKED_MSGS: {
+       trackingHub: ['course:launch'],
        Adapt: [
-        'adapt:start',                                 // course launched
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
         'assessments:complete',
        ],
        course: ['change:_isComplete'],
-//       blocks: ['change:_isComplete'],
        components: ['change:_isComplete'],
        contentObjects: ['change:_isComplete', 'change:_isVisible' ]
     },
 
 
     initialize: function() {
+      // Hold up setup while credentials and other key data is retrieved
+      Adapt.trigger('plugin:beginWait');
+
       this.addChannelHandler(browserChannelHandler);
-      _.bindAll(this,'turnOffSetupStage');
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataLoaded', this.onDataLoaded);
-      this.listenToOnce(Adapt, 'adapt:start', this.onStart);
     },
 
 
@@ -203,7 +203,7 @@ define([
       }
 
       // Hold up setup while credentials and other key data is retrieved
-      Adapt.trigger('plugin:beginWait');
+      //Adapt.trigger('plugin:beginWait');
 
       // start launch sequence -> loadState -> setupInitialEventListeners... do this asynchronously
       console.log('trackingHub: starting launch sequence...');
@@ -295,14 +295,11 @@ define([
       console.log('state ready');
       this.applyStateToStructure();
 
-      // Retrieval completed
-      Adapt.trigger('plugin:endWait');
-    },
-
-    onStart: function(args) {
       this.setupInitialEventListeners();
-      // Dispatch the event we missed
-      this.dispatchTrackedMsg(args, 'Adapt', 'adapt:start');
+
+      // Retrieval completed. This plugin is done doings its things
+      Adapt.trigger('plugin:endWait');
+      this.trigger('course:launch');
     },
 
     applyStateToStructure: function() {
@@ -329,17 +326,14 @@ define([
       this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
       $(document).on("visibilitychange", this._onDocumentVisibilityChange);
       console.log('FINISHED setting up initial event listeners...');
-      //this._settingUpListeners = false;
-      setTimeout(this.turnOffSetupStage, 120);
-    },
-
-    turnOffSetupStage: function() {
       this._settingUpListeners = false;
     },
+
     getObjFromEventSourceName: function (eventSourceName) {
       var obj = null;
       // TODO: do this with an object? (name is key, value is the target object)
       switch (eventSourceName.toLowerCase()) {
+        case 'trackinghub': obj = this; break;
         case 'adapt': obj = Adapt; break;
         case 'course': obj = Adapt.course; break;
         case 'blocks': obj = Adapt.blocks; break;
@@ -389,10 +383,7 @@ define([
       var channelConfig;
 
       _.each(this._channels, function (channel) {
-//        var isEventIgnored = _.contains(channel._ignoreEvents,eventName);
-//        if ( !isEventIgnored && channel._reportsEvents ) {
           channel._handler.processEvent(channel, eventSourceName, eventName, args);
-//        }
       }, this);
       // At this point in time, all channels have processed (or not) the event, so the whole representation of state is updated.
       // So trackingHub can invoke the Save functionality, (although the specific save is performed by a concrete channel).
@@ -431,7 +422,7 @@ define([
 
     titleToKey: function(str) {
         // replace spaces with '_' and lowercase all
-        return str.replace(/[.:\s]/g, "_").toLowerCase();
+        return str.replace(/[\?’,.:\s]/g, "_").toLowerCase();
     },
 
     onDocumentVisibilityChange: function() {
