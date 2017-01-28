@@ -45,7 +45,7 @@ define([ 'coreJS/adapt'
     /*****  Specific composing functions   *****/
     /*******************************************/
 
-    Adapt_adapt_start: function (args) {
+    trackingHub_course_launch: function(args) {
       var message = _.clone(this.baseMessage);
 
       message.actor = Adapt.trackingHub.userInfo;
