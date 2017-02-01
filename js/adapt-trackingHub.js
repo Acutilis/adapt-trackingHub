@@ -39,6 +39,7 @@ define([
       this.addChannelHandler(browserChannelHandler);
       this.listenToOnce(Adapt, 'configModel:dataLoaded', this.onConfigLoaded);
       this.listenToOnce(Adapt, 'app:dataLoaded', this.onDataLoaded);
+      this.listenToOnce(Adapt, 'adapt:start', this.onStart);
     },
 
 
@@ -76,7 +77,7 @@ define([
               return false;
             if (chandler._config._isEnabled) {
               // Only if this handler is enabled, we process its channel definitions to add them to our array of _channels.
-              var channelDefs = chandler.getChannelDefinitions(); 
+              var channelDefs = chandler.getChannelDefinitions();
               _.each(channelDefs, function(channel) {
                 // if channel is enabled, add it to our list of channels, adding a reference to the handler itself
                 if (channel._isEnabled) {
@@ -94,7 +95,7 @@ define([
     },
 
     checkBaseConfig: function() {
-      this._config = Adapt.config.has('_trackingHub') 
+      this._config = Adapt.config.has('_trackingHub')
         ? Adapt.config.get('_trackingHub')
         : false;
       if (this._config && this._config._isEnabled !== false) {
@@ -133,7 +134,7 @@ define([
           chConfig._isLaunchManager = false;
       chConfig._ignoreEvents = chConfig._ignoreEvents || [];
 
-      if ( ( _.isArray(chConfig._ignoreEvents)) && 
+      if ( ( _.isArray(chConfig._ignoreEvents)) &&
            ( _.isBoolean(chConfig._isEnabled)) &&
            ( _.isBoolean(chConfig._reportsEvents)) &&
            ( _.isBoolean(chConfig._tracksState)) &&
@@ -183,7 +184,7 @@ define([
           result = false;
       }
       return result;
-    }, 
+    },
 
     applyChannelConfig: function(channel) {
       if (channel._handler.hasOwnProperty('applyChannelConfig')) {
@@ -225,7 +226,7 @@ define([
     /*******************************************/
 
     queryString: function() {
-      // This function is anonymous, is executed immediately and 
+      // This function is anonymous, is executed immediately and
       // the return value is assigned to QueryString!
       var query_string = {};
       var query = window.location.search.substring(1);
@@ -241,7 +242,7 @@ define([
         } else {
           query_string[pair[0]].push(decodeURIComponent(pair[1]));
         }
-      } 
+      }
       return query_string;
     },
 
@@ -295,10 +296,14 @@ define([
       console.log('state ready');
       this.applyStateToStructure();
 
-      this.setupInitialEventListeners();
-
       // Retrieval completed. This plugin is done doings its things
       Adapt.trigger('plugin:endWait');
+    },
+
+    onStart: function() {
+      console.log('bind event listeners');
+
+      this.setupInitialEventListeners();
       this.trigger('course:launch');
     },
 
@@ -396,14 +401,14 @@ define([
     },
 
     saveState: function() {
-      // TODO: implement configurable functionality to throttle saving somehow, that is, save only 
+      // TODO: implement configurable functionality to throttle saving somehow, that is, save only
       // once every X times this function is called, for example
       _.each(this._channels, function(channel) {
         if (channel._isStateStore) {
           channel._handler.saveState(this._state, channel, this._config._courseID);
         }
       }, this);
-    }, 
+    },
 
     getValidFunctionName: function (eventSourceName, eventName) {
       return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
