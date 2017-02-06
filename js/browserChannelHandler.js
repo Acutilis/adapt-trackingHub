@@ -145,7 +145,7 @@ define([
       var articleProps = [
         '_isComplete', '_isInteractionComplete', '_isLocked', '_questions',
         '_attemptInProgress', '_attemptsLeft', '_attemptsSpent', '_isAssessmentComplete',
-        '_scoreAsPercent', '_score', '_lastAttemptScoreAsPrecent', '_isPass'
+        '_scoreAsPercent', '_score', '_lastAttemptScoreAsPrecent', '_isPass', '_maxScore'
       ];
       _.each(Adapt.articles.models, function(article) {
         var key = Adapt.trackingHub.getElementKey(article);
@@ -203,25 +203,33 @@ define([
       _.each(Adapt.components.models, function(component) {
         var key = Adapt.trackingHub._config._identifyById ? component.get('_id') :
             Adapt.trackingHub.titleToKey(component.get('title'));
-        component.set(localState.components[key]);
+        if (_.has(localState.components, key)) {
+          component.set(localState.components[key]);
+        }
       }, this);
 
       _.each(Adapt.blocks.models, function(block) {
         var key = Adapt.trackingHub._config._identifyById ? block.get('_id') :
             Adapt.trackingHub.titleToKey(block.get('title'));
-        block.set(localState.blocks[key]);
+        if (_.has(localState.blocks, key)) {
+          block.set(localState.blocks[key]);
+        }
       }, this);
 
       _.each(Adapt.articles.models, function(article) {
         var key = Adapt.trackingHub._config._identifyById ? article.get('_id') :
             Adapt.trackingHub.titleToKey(article.get('title'));
-        article.set(localState.articles[key]);
+        if (_.has(localState.articles, key)) {
+          article.set(localState.articles[key]);
+        }
       }, this);
 
       _.each(Adapt.contentObjects.models, function(contentObject) {
         var key = Adapt.trackingHub._config._identifyById ? contentObject.get('_id') :
             Adapt.trackingHub.titleToKey(contentObject.get('title'));
-        contentObject.set(localState.contentObjects[key]);
+        if (_.has(localState.contentObjects, key)) {
+          contentObject.set(localState.contentObjects[key]);
+        }
       }, this);
 
       console.log('browserChannelHandler state applied to structure...');
