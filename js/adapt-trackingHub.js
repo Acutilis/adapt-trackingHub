@@ -109,6 +109,8 @@ define([
     checkBrowserChannelConfig: function() {
       var bcconf = this._config._browserChannel;
       browserChannelHandler._config = bcconf;  // just for convenience
+      // force the name of the default CH
+      browserChannelHandler._config._name = 'browserChannel';
       return this.checkCommonChannelConfig(bcconf);
     },
 
