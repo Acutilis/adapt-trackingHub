@@ -7,7 +7,6 @@
         "_courseID" : "http://www.acme.com/courses/4f4f4f",
         "_identifyById": false,
         "_browserChannel": {
-            "_name": "browserChannel",
             "_isEnabled": true,
             "_reportsEvents": true,
             "_tracksState": true,
