@@ -64,7 +64,7 @@ define([
           this.deliverMsg(message, channel);
         }
       }
-      // call specific event handling function for the event being processed, if it exists 
+      // call specific event handling function for the event being processed, if it exists
       funcName = Adapt.trackingHub.getValidFunctionName(eventSourceName, eventName);
       // We only need to write event handling functions for the events that we care about
       // In this particular channes handler we don't need to do any specific processing for particular events.
@@ -110,44 +110,55 @@ define([
     },
 
     getUpdatedLocalState: function() {
-      // Our state representation (localState) is an object whose keys are the titles of the components, 
-      // (or ids, depending on config. titles are the default, and preferred) and the values are objects
-      // with the attributes that begin with '_'.
-      var localState = {};
+      // Our state representation (localState) is an object with collections for the major
+      // model types. Each collections keys are the titles of the components, (or ids,
+      // depending on config. titles are the default, and preferred) and the values are
+      // objects with the attributes that begin with '_'.
+      var localState = {
+        contentObjects: {},
+        articles: {},
+        blocks: {},
+        components: {}
+      };
+
+      // These are the attributes that we want to save (if they exist in the component)
+      var componentProps = [
+        '_canReset', '_canShowFeedback', '_isAvailable', '_isComplete', '_isEnabled',
+        '_isInteractionComplete', '_isLocked', '_isOptional', '_isResetOnRevisit',
+        '_isVisible', '_requireCompletionOf', '_attempts', '_canShowMarking',
+        '_canShowModelAnswer', '_isAtLeastOneCorrectSelection', '_isRandom',
+        '_isSubmitted', '_questionWeight', '_shouldDisplayAttempts', '_userAnswer'
+      ];
       _.each(Adapt.components.models, function(component) {
-        var compKey = Adapt.trackingHub.getElementKey(component);
-        // These are the attributes that we want to save (if they exist in the component)
-        var atts = [
-                    '_canReset',
-                    '_canShowFeedback',
-                    '_isAvailable',
-                    '_isComplete',
-                    '_isEnabled',
-                    '_isInteractionComplete',
-                    '_isLocked',
-                    '_isOptional',
-                    '_isResetOnRevisit',
-                    '_isVisible',
-                    '_requireCompletionOf',
-
-                    '_attempts',
-                    '_canShowMarking',
-                    '_canShowModelAnswer',
-                    '_isAtLeastOneCorrectSelection',
-                    '_isRandom',
-                    '_isSubmitted',
-                    '_questionWeight',
-                    '_shouldDisplayAttempts',
-                    '_userAnswer',
-        ]
-
-        localState[compKey] = {};
-        _.each(atts, function(attName) {
-            if (_.has(component.attributes, attName)) {
-                localState[compKey][attName] = component.get(attName);
-            }
-        }, this);
+        var key = Adapt.trackingHub.getElementKey(component);
+        localState.components[key] = _.pick(component.attributes, componentProps);
       }, this);
+
+      var blockProps = [
+        '_isComplete', '_isInteractionComplete', '_isLocked'
+      ];
+      _.each(Adapt.blocks.models, function(block) {
+        var key = Adapt.trackingHub.getElementKey(block);
+        localState.blocks[key] = _.pick(block.attributes, blockProps);
+      });
+
+      var articleProps = [
+        '_isComplete', '_isInteractionComplete', '_isLocked', '_questions',
+        '_attemptInProgress', '_attemptsLeft', '_attemptsSpent', '_isAssessmentComplete',
+        '_scoreAsPercent', '_score', '_lastAttemptScoreAsPrecent', '_isPass', '_maxScore'
+      ];
+      _.each(Adapt.articles.models, function(article) {
+        var key = Adapt.trackingHub.getElementKey(article);
+        localState.articles[key] = _.pick(article.attributes, articleProps);
+      });
+
+      var contentProps = [
+        '_isComplete', '_isInteractionComplete', '_isLocked', '_isVisited'
+      ];
+      _.each(Adapt.contentObjects.models, function(contentObject) {
+        var key = Adapt.trackingHub.getElementKey(contentObject);
+        localState.contentObjects[key] = _.pick(contentObject.attributes, contentProps);
+      });
 
       return localState;
     },
@@ -175,22 +186,53 @@ define([
     applyStateToStructure: function() {
       this._OWNSTATE = Adapt.trackingHub._state[this._OWNSTATEKEY];
       var localState = this._OWNSTATE;
-      // Walk through all components, and update its '_' attributes with what there is in localState.
-      // process each item in localState, which is a component
-      if (localState) {
-          _.each(Adapt.components.models, function(component) {
-            var compKey = null;
-            Adapt.trackingHub._config._identifyById ? 
-              compKey = component.get('_id')
-              :
-              compKey = Adapt.trackingHub.titleToKey(component.get('title'));
-            var stateAtts = localState[compKey];
-            _.each(stateAtts, function(value, key, list) {  //stateAtts is an object, not a list!
-              component.set(key, value);
-            }, this);
-          }, this);
-          console.log('browserChannelHandler state applied to structure...');
+
+      if (!localState) {
+        console.log('browserChannelHandler no state to apply to structure...');
+        return;
       }
+
+      // Backwards compatability with components being at root of object
+      if (!localState.components) {
+        localState.components = localState;
+      }
+
+      // Walk through all components, blocks, articles, and contentObjects,
+      // update their '_' attributes with what there is in localState.
+
+      _.each(Adapt.components.models, function(component) {
+        var key = Adapt.trackingHub._config._identifyById ? component.get('_id') :
+            Adapt.trackingHub.titleToKey(component.get('title'));
+        if (_.has(localState.components, key)) {
+          component.set(localState.components[key]);
+        }
+      }, this);
+
+      _.each(Adapt.blocks.models, function(block) {
+        var key = Adapt.trackingHub._config._identifyById ? block.get('_id') :
+            Adapt.trackingHub.titleToKey(block.get('title'));
+        if (_.has(localState.blocks, key)) {
+          block.set(localState.blocks[key]);
+        }
+      }, this);
+
+      _.each(Adapt.articles.models, function(article) {
+        var key = Adapt.trackingHub._config._identifyById ? article.get('_id') :
+            Adapt.trackingHub.titleToKey(article.get('title'));
+        if (_.has(localState.articles, key)) {
+          article.set(localState.articles[key]);
+        }
+      }, this);
+
+      _.each(Adapt.contentObjects.models, function(contentObject) {
+        var key = Adapt.trackingHub._config._identifyById ? contentObject.get('_id') :
+            Adapt.trackingHub.titleToKey(contentObject.get('title'));
+        if (_.has(localState.contentObjects, key)) {
+          contentObject.set(localState.contentObjects[key]);
+        }
+      }, this);
+
+      console.log('browserChannelHandler state applied to structure...');
     },
 
     /*******  END STATE MANAGEMENT FUNCTIONS ********/
@@ -206,7 +248,7 @@ define([
     /*******  END SPECIFIC EVENT PROCESSING FUNCTIONS ********/
 
   }, Backbone.Events);
-  
+
   BrowserChannelHandler.initialize();
   return (BrowserChannelHandler);
 });
