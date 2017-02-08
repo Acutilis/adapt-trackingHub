@@ -18,6 +18,8 @@ Please note that adapt-trackingHub is neither endorsed nor supported by the offi
 
 ## Installation
 
+Important: This extension requires version v2.0.16 of the Adapt Framework. It will **not** work with earlier versions.
+
 With the Adapt CLI installed, run the following from the command line:
 
 `adapt install adapt-trackingHub`
