@@ -199,7 +199,7 @@ define([
 
     onDataLoaded: function() {
       // Check strict titles.
-      if (!this._config._identifyById) {
+      if (this._config._isEnabled && !this._config._identifyById) {
           if (!this.checkStrictTitles()) {
               return
           }
