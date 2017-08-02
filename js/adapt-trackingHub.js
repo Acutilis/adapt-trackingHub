@@ -99,7 +99,7 @@ define([
         ? Adapt.config.get('_trackingHub')
         : false;
       if (this._config && this._config._isEnabled !== false) {
-        this._config._courseID = this._config._courseID || 'http://www.courses.com/' + this.genUUDI();
+        this._config._courseID = this._config._courseID || 'http://www.courses.com/' + this.genUUID();
         this._config._identifyById = this._config._identifyById || false; // is this wrong?
         return true;
       }
