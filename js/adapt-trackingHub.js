@@ -25,6 +25,7 @@ define([
         'router:menu',                                 // visited menu
         'router:page',                                 // visited page
         'assessments:complete',
+        'questionView:recordInteraction'
        ],
        course: ['change:_isComplete'],
        components: ['change:_isComplete'],
