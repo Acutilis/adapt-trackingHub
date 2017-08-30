@@ -331,8 +331,6 @@ define([
         },this);
       },this);
 
-      this._onDocumentVisibilityChange = _.bind(this.onDocumentVisibilityChange, this);
-      $(document).on("visibilitychange", this._onDocumentVisibilityChange);
       console.log('FINISHED setting up initial event listeners...');
       this._settingUpListeners = false;
     },
@@ -433,21 +431,6 @@ define([
         return str.replace(/[\?’,.:\s]/g, "_").toLowerCase();
     },
 
-    onDocumentVisibilityChange: function() {
-      // Use visibilitystate instead of unload or beforeunload. It's more reliable.
-      // See: // https://www.igvita.com/2015/11/20/dont-lose-user-and-app-state-use-page-visibility/
-
-      if (document.visibilityState == "hidden") {
-        this.saveState();
-      };
-
-      if (document.visibilityState == "visible") {
-        //this.loadState();
-      };
-
-      $(document).off("visibilitychange", this._onDocumentVisibilityChange);
-      $(document).on("visibilitychange", this._onDocumentVisibilityChange);
-    }
   }, Backbone.Events);
 
   Adapt.trackingHub.initialize();
