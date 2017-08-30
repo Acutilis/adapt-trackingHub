@@ -7,9 +7,9 @@ TrackingHub itself implements  minimal local tracking in the browser (logging me
 * different tracking extensions to be used at the same time
 * tracking events and state (_progress_) to be sent to more than one backend at the same time (_multichannel_ tracking).
 
-It is relatively easy to develop alternative tracking extensions for trackingHub.
+The main tracking extension released along with trackingHub v0.2.x implements **xAPI** tracking. It is available in a [separate repository](https://github.com/Acutilis/adapt-tkhub-xAPI). All xAPI-specific information is [there](https://github.com/Acutilis/adapt-tkhub-xAPI), but it is advisable to get familiar with the concepts introduced by trackingHub, explained in this document and in the [Wiki](https://github.com/Acutilis/adapt-trackingHub/wiki).
 
-The main tracking extension released along with trackingHub v0.2.0 implements **xAPI** tracking. It is available in a [separate repository](https://github.com/Acutilis/adapt-tkhub-xAPI). All xAPI-specific information is [there](https://github.com/Acutilis/adapt-tkhub-xAPI), but it is advisable to get familiar with the concepts introduced by trackingHub, explained in this document and in the [Wiki](https://github.com/Acutilis/adapt-trackingHub/wiki).
+It is relatively easy to develop alternative tracking extensions for trackingHub, and to make it even easier we have released [another project](https://github.com/Acutilis/adapt-tkhub-starter) that provides an empty (but functional) extension that can be used as a starting point. See it at [https://github.com/Acutilis/adapt-tkhub-starter](https://github.com/Acutilis/adapt-tkhub-starter).
 
 The adapt-trackingHub extension is compatible with the Authoring Tool. However, most of the testing so far has been done using the framework.
 
