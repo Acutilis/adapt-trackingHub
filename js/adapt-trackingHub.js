@@ -289,7 +289,7 @@ define([
       } else {
           this.onStateLoaded({});  // initialize the full state representation to an empty object
       }
-
+      Adapt.trigger('trackinghub:launchSequenceFinished');
     },
 
     onStateLoaded: function(fullState) {
@@ -354,7 +354,7 @@ define([
       // this fuction is susceptible of being  called form other plugins
       //(mainly custom components that implement custom reporting)
       var sourceObj;
-      var longEventName;
+      // var longEventName;
       var eventSourceName;
 
       if (_.isString(eventSource)) {
@@ -364,9 +364,9 @@ define([
         sourceObj = eventSource;
         eventSourceName = sourceObj._CHID;
       }
-      longEventName = eventSourceName + ':' + eventName;
+      // longEventName = eventSourceName + ':' + eventName;
 
-      this.listenTo(sourceObj, longEventName, function (args) {
+      this.listenTo(sourceObj, eventName, function (args) {
         this.dispatchTrackedMsg(args, eventSourceName, eventName);
       }, this);
     },
