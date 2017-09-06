@@ -289,6 +289,7 @@ define([
       } else {
           this.onStateLoaded({});  // initialize the full state representation to an empty object
       }
+
     },
 
     onStateLoaded: function(fullState) {
@@ -354,10 +355,11 @@ define([
       //(mainly custom components that implement custom reporting)
       var sourceObj;
       var longEventName;
+      var eventSourceName;
 
       if (_.isString(eventSource)) {
-        sourceObj = this.getObjFromEventSourceName(eventSourceName);
         eventSourceName = eventSource;
+        sourceObj = this.getObjFromEventSourceName(eventSourceName);
       } else {
         sourceObj = eventSource;
         eventSourceName = sourceObj._CHID;
