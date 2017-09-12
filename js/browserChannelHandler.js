@@ -8,6 +8,7 @@ define([
     _CHID: 'browserChannelHandler',
     _OWNSTATEKEY: 'basic',
     _OWNSTATE: null,
+    _COMPOSER: msgComposer,
 
     initialize: function() {
       console.log('Initializing browserChannelHandler');
