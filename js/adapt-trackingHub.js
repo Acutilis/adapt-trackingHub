@@ -350,11 +350,15 @@ define([
       return obj;
     },
 
-    addCustomEventListener: function(eventSource, eventName) {
-      // this fuction is susceptible of being  called form other plugins
-      //(mainly custom components that implement custom reporting)
+    addCustomEventListener: function(eventSource, eventSourceName, eventName) {
+
+      this.listenTo(eventSource, eventName, function (args) {
+        this.dispatchTrackedMsg(args, eventSourceName, eventName);
+      }, this);
+    },
+
+    removeCustomEventListener: function(eventSource, eventName) {
       var sourceObj;
-      // var longEventName;
       var eventSourceName;
 
       if (_.isString(eventSource)) {
@@ -364,11 +368,7 @@ define([
         sourceObj = eventSource;
         eventSourceName = sourceObj._CHID;
       }
-      // longEventName = eventSourceName + ':' + eventName;
-
-      this.listenTo(sourceObj, eventName, function (args) {
-        this.dispatchTrackedMsg(args, eventSourceName, eventName);
-      }, this);
+      this.stopListening(sourceObj, eventName);
     },
 
     addLocalEventListener: function(eventSourceName, eventName) {
@@ -414,7 +414,9 @@ define([
     },
 
     getValidFunctionName: function (eventSourceName, eventName) {
-      return (eventSourceName + '_' + eventName.replace(/:/g, "_"));
+        var s = (eventSourceName + '_' + eventName.replace(/:/g, "_"));
+        s = s.replace(/-/g, "_");
+        return s;
     },
 
     getElementKey: function(obj) {

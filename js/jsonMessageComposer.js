@@ -36,7 +36,7 @@ define([ 'coreJS/adapt'
     },
 
     addCustomComposingFunction: function(eventSourceName, eventName, func) {
-      funcName = this.getValidFunctionName(eventSourceName, eventName);
+      var funcName = Adapt.trackingHub.getValidFunctionName(eventSourceName, eventName);
       this[funcName] = func;
     },
 
